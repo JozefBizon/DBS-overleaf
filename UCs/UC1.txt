@@ -1,0 +1,21 @@
+sequenceDiagram
+    actor Z as Zákazník
+    participant S as Systém
+    participant DB as Databáza
+
+    Z->>S: Vyhľadá film a zvolí premietanie
+    S->>DB: Načíta dostupné miesta pre premietanie
+    DB-->>S: Zoznam voľných a obsadených miest
+    S-->>Z: Zobrazí mapu sedadiel
+
+    Z->>S: Vyberie konkrétne miesto
+    S->>DB: Overí dostupnosť miesta
+    DB-->>S: Výsledok overenia
+
+    alt Miesto je voľné
+        S->>DB: Vytvorí rezerváciu a lístok
+        DB-->>S: Potvrdenie
+        S-->>Z: Potvrdenie nákupu lístka
+    else Miesto je obsadené
+        S-->>Z: Upozornenie – miesto nie je dostupné
+    end

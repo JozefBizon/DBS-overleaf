@@ -32,7 +32,7 @@
 \addbibresource{references.bib}
 
 % ─── Language (swap to lang/sk for Slovak) ───────────────────────────────────
-\input{lang/en}
+\input{lang/sk}
 
 % ─── Student details ─────────────────────────────────────────────────────────
 \newcommand{\StudentName}{Arthur Dent, Alice Cooper}
@@ -87,187 +87,475 @@
 % Template source: https://github.com/FIIT-Databases/assignment-template
 % =============================================================================
 
-\section{Analysis}
-\label{sec:analysis}
+\section{Špecifikácia systému}
+\label{sec:specifikacia}
 
-The goal of this project was to create a submission template for the DBS
-course that students can clone and start writing in immediately. The template
-should be easy to use, support Slovak and English, and not require any prior
-\LaTeX{} experience\footnote{If this is your first time with \LaTeX{}, the
-Overleaf guide \cite{overleaf-docs} covers everything you need in about 30 minutes.}.
+Navrhovaný systém predstavuje informačný systém pre kino, ktorý umožňuje správu filmov,
+premietaní, kinosál, zákazníkov a lístkov. Systém poskytuje funkcionality pre zákazníkov aj
+zamestnancov kina.
 
-The template repository is available at \cite{template-repo}.
+Primárnym cieľom systému je umožniť zákazníkom jednoducho vyhľadávať filmy, kupovať
+lístky na konkrétne premietania a sledovať históriu filmov, ktoré navštívili. Okrem toho
+systém poskytuje možnosť ukladať filmy do zoznamu sledovania (watchlist), aby bol zákazník
+informovaný o budúcich premietaniach.
 
-% ── Subsections ──────────────────────────────────────────────────────────────
-% Use \subsection{} and \subsubsection{} when you need more structure.
+Z pohľadu kina systém umožňuje spravovať kinosály, premietania filmov a evidovať
+zamestnancov spolu s ich dochádzkou.
 
-\subsection{Requirements}
+Systém tak centralizuje všetky informácie súvisiace s prevádzkou kina a zjednodušuje prácu
+so zákazníkmi aj zamestnancami.
 
-We identified the following requirements:
+\section{Aktéri systému}
+\label{sec:akteri}
 
+\subsection{Zákazník}
+Zákazník predstavuje osobu, ktorá využíva služby kina. Pomocou systému môže:
 \begin{itemize}
-    \item Clean cover page with faculty branding.
-    \item Bilingual support (SK/EN) via a single toggle.
-    \item Examples of tables, figures, code, and citations.
-    \item Minimal package dependencies --- it should compile everywhere.
+    \item vyhľadávať filmy,
+    \item prezerať premietania filmov,
+    \item kupovať lístky,
+    \item vracať lístky,
+    \item ukladať filmy do watchlistu,
+    \item prezerať históriu navštívených filmov.
 \end{itemize}
 
-When listing ordered steps, use \texttt{enumerate} instead:
+Zákazník interaguje so systémom najmä pri rezervácii alebo nákupe lístkov.
 
+\subsection{Zamestnanec}
+Zamestnanec je pracovník kina, ktorý využíva systém na evidenciu pracovnej dochádzky.
+Jeho hlavné úlohy v systéme sú:
+\begin{itemize}
+    \item zaznamenanie príchodu do práce,
+    \item zaznamenanie odchodu z práce,
+    \item evidencia pracovných záznamov.
+\end{itemize}
+
+\section{Doménový model systému}
+\label{sec:domenovy-model}
+
+Systém obsahuje viacero základných objektov (entít), ktoré reprezentujú reálne prvky kina.
+
+\subsection{Kino}
+Kino predstavuje organizáciu, ktorá prevádzkuje premietanie filmov. Kino obsahuje:
+\begin{itemize}
+    \item viacero kinosál,
+    \item zamestnancov,
+    \item plán premietaní.
+\end{itemize}
+
+\subsection{Kinosála}
+Kinosála je miestnosť, v ktorej sa premietajú filmy. Každá kinosála má:
+\begin{itemize}
+    \item kapacitu miest,
+    \item označenie.
+\end{itemize}
+Premietanie filmu sa vždy koná v konkrétnej kinosále.
+
+\subsection{Film}
+Film predstavuje audiovizuálne dielo, ktoré je premietané v kine. Film môže byť premietaný
+viackrát a môže byť pridaný do watchlistu zákazníkov.
+
+\subsection{Premietanie}
+Premietanie predstavuje konkrétnu projekciu filmu v určitom čase a v konkrétnej kinosále.
+Obsahuje informácie o:
+\begin{itemize}
+    \item filme,
+    \item čase začiatku,
+    \item cene lístka,
+    \item kinosále.
+\end{itemize}
+
+\subsection{Lístok}
+Lístok predstavuje rezerváciu alebo zakúpenie miesta na konkrétne premietanie filmu.
+Obsahuje informácie o:
+\begin{itemize}
+    \item zákazníkovi,
+    \item premietaní,
+    \item mieste v sále,
+    \item stave lístka,
+    \item čase predaja.
+\end{itemize}
+
+\subsection{Watchlist}
+Watchlist predstavuje zoznam filmov, ktoré si zákazník uložil, aby ich mohol sledovať.
+
+\subsection{Zamestnanec}
+Zamestnanec je osoba pracujúca v kine. Systém eviduje informácie o zamestnancoch a ich
+pracovnej dochádzke.
+
+\subsection{Dochádzka}
+Dochádzka predstavuje evidenciu pracovného času zamestnanca a obsahuje:
+\begin{itemize}
+    \item čas príchodu,
+    \item čas odchodu,
+    \item poznámku.
+\end{itemize}
+
+\section{Biznis pravidlá systému}
+\label{sec:biznis-pravidla}
+
+Systém musí dodržiavať nasledujúce pravidlá:
 \begin{enumerate}
-    \item Clone the repository.
-    \item Edit \texttt{main.tex}.
-    \item Run \texttt{make}.
-    \item Submit the PDF.
+    \item Premietanie musí byť priradené ku konkrétnemu filmu.
+    \item Premietanie sa koná v konkrétnej kinosále.
+    \item Zákazník môže vlastniť viacero lístkov.
+    \item Lístok musí byť vždy priradený ku konkrétnemu premietaniu.
+    \item Počet predaných lístkov nesmie prekročiť kapacitu kinosály.
+    \item Zákazník môže vrátiť lístok len pred začiatkom premietania.
+    \item Film môže byť pridaný do watchlistu iba ak existuje v systéme.
+    \item Zamestnanec môže mať viacero záznamov dochádzky.
 \end{enumerate}
 
+\section{Používateľské scenáre}
+\label{sec:use-cases}
 
-\newpage
-\section{Proposal}
-\label{sec:proposal}
+\subsection{UC1 -- Nákup lístka}
+\textbf{Popis:} Zákazník si zakúpi lístok na konkrétne premietanie filmu.
 
-We compared a few approaches before settling on the current structure.
-Table~\ref{tab:comparison} summarizes our options.
+\subsubsection*{Hlavný scenár}
+\begin{enumerate}
+    \item Zákazník vyhľadá film v systéme.
+    \item Systém zobrazí dostupné premietania filmu.
+    \item Zákazník si vyberie konkrétne premietanie.
+    \item Systém zobrazí dostupné miesta v kinosále.
+    \item Zákazník vyberie miesto.
+    \item Systém overí dostupnosť miesta.
+    \item Systém vytvorí lístok.
+    \item Systém potvrdí nákup lístka.
+\end{enumerate}
 
-% ── Tables ───────────────────────────────────────────────────────────────────
-% Use \begin{table}[H] to place the table exactly here.
-% Label it with \label{} and reference it with Table~\ref{}.
+\subsubsection*{Alternatívny scenár A1 -- Miesto je už obsadené}
+\begin{enumerate}
+    \item Systém zistí, že vybrané miesto je už obsadené.
+    \item Systém zobrazí upozornenie zákazníkovi.
+    \item Zákazník si vyberie iné miesto.
+\end{enumerate}
 
-\begin{table}[H]
-    \centering
-    \caption{Comparison of template approaches}
-    \label{tab:comparison}
-    \begin{tabular}{l c c c}
-        \toprule
-        \textbf{Approach}  & \textbf{Easy to edit} & \textbf{Bilingual} & \textbf{Compiles anywhere} \\
-        \midrule
-        Word document       & yes                   & manual             & n/a  \\
-        Markdown + Pandoc   & yes                   & no                 & maybe \\
-        \LaTeX{} template   & yes                   & yes                & yes  \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-We chose \LaTeX{} because it handles structured documents, citations,
-and cross-references well --- things that matter when writing technical
-reports\footnote{It also looks way better than a Word document. But we are
-biased.}. Unrelated: the wood frog can survive being frozen solid for months ---
-its heart stops, it stops breathing, and in spring it just thaws and hops away.
-We found this less stressful than debugging \LaTeX{} table alignment.
-
-
-\newpage
-\section{Implementation}
-\label{sec:implementation}
-
-The template lives in a simple directory structure with localization files
-separated from the main document. Switching language requires changing one
-line:
-
-% ── Code listings ────────────────────────────────────────────────────────────
-% Use lstlisting for short code snippets.
-
-\begin{lstlisting}[language=TeX, caption={Switching language in the preamble}]
-% English
-\input{lang/en}
-
-% Slovak
-\input{lang/sk}
+\subsubsection*{Dátová vrstva}
+Systém vykoná \texttt{SELECT} dotaz do tabuliek \texttt{Premietanie} a \texttt{Kinosala}, aby overil
+existenciu premietania a kapacitu kinosály. Následne vykoná \texttt{SELECT} do tabuľky
+\texttt{Listok}, aby overil, či je vybrané miesto voľné. Ak je miesto dostupné, systém vykoná
+vloženie záznamu:
+\begin{lstlisting}[language=SQL, caption={Vytvorenie lístka v UC1}]
+INSERT INTO Listok (id_premietanie, id_zakaznik, kod_miesta, stav_listka, cas_predaja)
+VALUES (...);
 \end{lstlisting}
-
-For SQL or other languages, change the \texttt{language} parameter:
-
-\begin{lstlisting}[language=SQL, caption={Example SQL query}]
-SELECT s.name, COUNT(*) AS submission_count
-FROM students s
-JOIN submissions sub ON s.id = sub.student_id
-GROUP BY s.name
-ORDER BY submission_count DESC;
-\end{lstlisting}
-
-% ── Inline code ──────────────────────────────────────────────────────────────
-% Use \texttt{} for inline code: \texttt{SELECT * FROM ...}
-
-References to tables, figures, and sections are automatic. For example,
-this is Section~\ref{sec:implementation}, the comparison is in
-Table~\ref{tab:comparison}, and the faculty logo is shown in
-Figure~\ref{fig:logo} in Attachment~\ref{sec:attachment-a1}.
-If you add or reorder content, the numbers update on the next build.
-
-% ── Citations ────────────────────────────────────────────────────────────────
-% Add entries to references.bib, then cite them with \cite{key}.
-% The bibliography at the end is generated automatically.
-
-The database fundamentals referenced throughout the course are covered
-in \cite{elmasri2016}. For PostgreSQL-specific syntax, see
-\cite{postgresql-docs}.
-
-
-\newpage
-\section{Challenges}
-\label{sec:challenges}
-
-The main challenge was keeping the template simple enough that a student
-seeing \LaTeX{} for the first time would not immediately close the file.
-We solved this by limiting the preamble to essential packages and
-putting all examples in one place --- this document.
-
-We also learned that BibTeX interprets \texttt{@} signs in comments as
-entry types, which caused confusing errors. Small things like this are
-easy to fix once you know about them, but hard to debug the first time\footnote{A
-group of frogs is called an ``army.'' A group of students debugging BibTeX at
-2\,AM is called ``Tuesday.''}.
-
-
-\newpage
-\section{Conclusion}
-\label{sec:conclusion}
-
-The template meets the requirements from Section~\ref{sec:analysis}.
-It compiles with a standard \LaTeX{} distribution, supports two
-languages, and provides working examples of every feature students
-are likely to need.
-
-For anything not covered here, the Overleaf documentation
-\cite{overleaf-docs} is an excellent reference.
-
-% ─── Bibliography ────────────────────────────────────────────────────────────
-\printbibliography
-
-% ─── Attachments ─────────────────────────────────────────────────────────────
-\newpage
-\appendix
-
-\section{Sample figures}
-\label{sec:attachment-a1}
-
-% ── Figures ──────────────────────────────────────────────────────────────────
-% Use \begin{figure}[H] to place the figure exactly here.
-% Label it with \label{} and reference it with Figure~\ref{}.
-% Keep images in the assets/ directory.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.25\textwidth]{../assets/logo}
-    \caption{Faculty logo used on the cover page}
-    \label{fig:logo}
+    \includegraphics[width=0.9\textwidth]{"../UCs/uc1.png"}
+    \caption{Sekvenčný diagram -- UC1 Nákup lístka}
+    \label{fig:uc1}
 \end{figure}
 
-Place your diagrams, screenshots, and other supporting images in this
-section. Reference them from the main text using
-\texttt{Figure\~{}\textbackslash ref\{fig:logo\}}.
+\subsection{UC2 -- Pridanie filmu do watchlistu}
 
-Some frogs can absorb water through a patch of skin on their belly called a
-``drinking patch'' --- they literally sit in puddles to hydrate. This has
-nothing to do with databases but is objectively more interesting than
-anything on this page.
+\subsubsection*{Hlavný scenár}
+\begin{enumerate}
+    \item Zákazník vyhľadá film.
+    \item Zákazník zvolí možnosť \uv{Pridať do watchlistu}.
+    \item Systém overí existenciu filmu.
+    \item Systém uloží film do watchlistu.
+\end{enumerate}
 
-% You can control the image size with the width parameter:
-%   width=0.5\textwidth   ... half the page width
-%   width=5cm             ... exact size
-%   scale=0.8             ... 80% of original
+\subsubsection*{Alternatívny scenár A1 -- Film je už vo watchliste}
+\begin{enumerate}
+    \item Systém zistí, že film je už uložený vo watchliste zákazníka.
+    \item Systém zobrazí upozornenie, že film už je sledovaný.
+\end{enumerate}
 
-% To add more figures, copy the block above and change the file path,
-% caption, and label.
+\subsubsection*{Dátová vrstva}
+Systém vykoná dotaz:
+\begin{lstlisting}[language=SQL]
+SELECT * FROM Film
+WHERE id_film = ...;
+\end{lstlisting}
+aby overil existenciu filmu. Následne vykoná kontrolu v tabuľke \texttt{Watchlist}, či už záznam
+existuje. Ak neexistuje, vykoná:
+\begin{lstlisting}[language=SQL, caption={Pridanie filmu do watchlistu v UC2}]
+INSERT INTO Watchlist (id_zakaznik, id_film, datum_pridania)
+VALUES (...);
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{"../UCs/uc2.png"}
+    \caption{Sekvenčný diagram -- UC2 Pridanie filmu do watchlistu}
+    \label{fig:uc2}
+\end{figure}
+
+\subsection{UC3 -- Vrátenie lístka}
+
+\subsubsection*{Hlavný scenár}
+\begin{enumerate}
+    \item Zákazník otvorí zoznam svojich lístkov.
+    \item Vyberie lístok.
+    \item Zvolí možnosť vrátenia lístka.
+    \item Systém overí čas začiatku premietania.
+    \item Systém označí lístok ako vrátený.
+\end{enumerate}
+
+\subsubsection*{Alternatívny scenár A1 -- Premietanie už začalo}
+\begin{enumerate}
+    \item Systém zistí, že aktuálny čas je po začiatku premietania.
+    \item Systém vrátenie lístka neumožní.
+\end{enumerate}
+
+\subsubsection*{Dátová vrstva}
+Systém vykoná \texttt{SELECT} z tabuliek \texttt{Listok} a \texttt{Premietanie}. Ak je čas premietania
+ešte v budúcnosti, vykoná:
+\begin{lstlisting}[language=SQL, caption={Označenie lístka ako vráteného v UC3}]
+UPDATE Listok
+SET stav_listka = 'vrateny'
+WHERE id_listok = ...;
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{"../UCs/uc3.png"}
+    \caption{Sekvenčný diagram -- UC3 Vrátenie lístka}
+    \label{fig:uc3}
+\end{figure}
+
+\subsection{UC4 -- Zobrazenie histórie filmov}
+
+\subsubsection*{Hlavný scenár}
+\begin{enumerate}
+    \item Zákazník otvorí svoj profil.
+    \item Zvolí možnosť \uv{História filmov}.
+    \item Systém vyhľadá lístky zákazníka.
+    \item Systém zobrazí zoznam filmov.
+\end{enumerate}
+
+\subsubsection*{Alternatívny scenár A1 -- Zákazník ešte nenavštívil žiadne premietanie}
+Systém zobrazí informáciu, že história je prázdna.
+
+\subsubsection*{Dátová vrstva}
+Systém vykoná \texttt{JOIN} medzi tabuľkami \texttt{Listok}, \texttt{Premietanie} a \texttt{Film}, aby
+získal zoznam filmov navštívených zákazníkom.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{"../UCs/uc4.png"}
+    \caption{Sekvenčný diagram -- UC4 Zobrazenie histórie filmov}
+    \label{fig:uc4}
+\end{figure}
+
+\subsection{UC5 -- Zaznamenanie dochádzky}
+
+\subsubsection*{Hlavný scenár}
+\begin{enumerate}
+    \item Zamestnanec sa prihlási do systému.
+    \item Zvolí možnosť \uv{Zaznamenať príchod}.
+    \item Systém uloží čas príchodu.
+\end{enumerate}
+
+\subsubsection*{Alternatívny scenár A1 -- Zamestnanec zaznamenáva odchod}
+\begin{enumerate}
+    \item Zamestnanec zvolí možnosť \uv{Zaznamenať odchod}.
+    \item Systém aktualizuje existujúci záznam dochádzky.
+\end{enumerate}
+
+\subsubsection*{Dátová vrstva}
+Pri príchode systém vykoná:
+\begin{lstlisting}[language=SQL]
+INSERT INTO Dochadzka (id_zamestnanec, cas_prichodu, poznamka)
+VALUES (...);
+\end{lstlisting}
+Pri odchode vykoná:
+\begin{lstlisting}[language=SQL, caption={Aktualizácia dochádzky v UC5}]
+UPDATE Dochadzka
+SET cas_odchodu = ...
+WHERE id_dochadzka = ...;
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{"../UCs/uc5.png"}
+    \caption{Sekvenčný diagram -- UC5 Zaznamenanie dochádzky}
+    \label{fig:uc5}
+\end{figure}
+
+\subsection{UC6 -- Zobrazenie histórie premietaní}
+
+\subsubsection*{Hlavný scenár}
+\begin{enumerate}
+    \item Zákazník otvorí sekciu histórie.
+    \item Systém vyhľadá premietania.
+    \item Zobrazí zoznam filmov.
+\end{enumerate}
+
+\subsubsection*{Alternatívny scenár A1 -- Neexistujú žiadne premietania}
+Systém zobrazí informáciu o prázdnom zozname.
+
+\subsubsection*{Dátová vrstva}
+Systém vykoná \texttt{SELECT} s \texttt{JOIN} medzi tabuľkami \texttt{Premietanie} a \texttt{Film}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{"../UCs/uc6.png"}
+    \caption{Sekvenčný diagram -- UC6 Zobrazenie histórie premietaní}
+    \label{fig:uc6}
+\end{figure}
+
+\section{Databázový model}
+\label{sec:db-model}
+
+Databázový model systému pozostáva z deviatich tabuliek:
+\begin{itemize}
+    \item \texttt{Kino},
+    \item \texttt{Kinosala},
+    \item \texttt{Film},
+    \item \texttt{Premietanie},
+    \item \texttt{Zakaznik},
+    \item \texttt{Listok},
+    \item \texttt{Watchlist},
+    \item \texttt{Zamestnanec},
+    \item \texttt{Dochadzka}.
+\end{itemize}
+
+Diagram databázy je uvedený na Obrázku~\ref{fig:er-diagram}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{"../UCs/database ER diagram.png"}
+    \caption{ER diagram databázy kina}
+    \label{fig:er-diagram}
+\end{figure}
+
+\section{Technický popis tabuliek}
+\label{sec:tabulky}
+
+\subsection{Tabuľka \texttt{Kino}}
+Účel tabuľky je evidovať základné informácie o kinách v systéme. Každé kino predstavuje
+prevádzku, ktorá obsahuje viacero kinosál a zamestnáva pracovníkov.
+\begin{description}
+    \item[\texttt{id\_kino}] \texttt{int}, primárny kľúč, \texttt{IDENTITY}.
+    \item[\texttt{nazov}] \texttt{varchar(100)}, \texttt{NOT NULL}.
+    \item[\texttt{adresa}] \texttt{varchar(255)}, nepovinný atribút.
+    \item[\texttt{kontakt}] \texttt{varchar(50)}, \texttt{UNIQUE}.
+\end{description}
+Primárny kľúč \texttt{id\_kino} je umelý identifikátor. Tento prístup zaručuje stabilitu databázy aj
+pri zmene údajov kina (napríklad pri zmene názvu alebo adresy). Tabuľka je referencovaná z
+tabuliek \texttt{Kinosala} a \texttt{Zamestnanec}.
+
+\subsection{Tabuľka \texttt{Premietanie}}
+Tabuľka eviduje konkrétne premietania filmov v jednotlivých kinosálach. Každý záznam
+reprezentuje jedno premietanie filmu v určitom čase.
+\begin{description}
+    \item[\texttt{id\_premietanie}] \texttt{int}, primárny kľúč.
+    \item[\texttt{id\_film}] \texttt{int}, cudzí kľúč na \texttt{Film}.
+    \item[\texttt{id\_sala}] \texttt{int}, cudzí kľúč na \texttt{Kinosala}.
+    \item[\texttt{cas\_zaciatku}] \texttt{datetime}, \texttt{NOT NULL}.
+    \item[\texttt{cena\_zakladna}] \texttt{decimal(10,2)}, \texttt{CHECK (cena\_zakladna > 0)}.
+\end{description}
+Primárny kľúč \texttt{id\_premietanie} jednoznačne identifikuje každé premietanie.
+Cudzí kľúč \texttt{id\_film} odkazuje na tabuľku \texttt{Film} a určuje, ktorý film sa premieta.
+Cudzí kľúč \texttt{id\_sala} odkazuje na tabuľku \texttt{Kinosala}, čím určuje, v ktorej sále sa
+premietanie koná.
+
+\subsection{Tabuľka \texttt{Listok}}
+Tabuľka slúži na evidenciu predaných lístkov na jednotlivé premietania. Každý lístok
+reprezentuje jedno konkrétne miesto na premietaní.
+\begin{description}
+    \item[\texttt{id\_listok}] \texttt{int}, primárny kľúč.
+    \item[\texttt{id\_premietanie}] \texttt{int}, cudzí kľúč na \texttt{Premietanie}.
+    \item[\texttt{id\_zakaznik}] \texttt{int}, cudzí kľúč na \texttt{Zakaznik}.
+    \item[\texttt{kod\_miesta}] \texttt{varchar(10)}, \texttt{NOT NULL}.
+    \item[\texttt{stav\_listka}] \texttt{varchar(20)}, \texttt{DEFAULT 'platny'}.
+    \item[\texttt{cas\_predaja}] \texttt{datetime}, \texttt{DEFAULT CURRENT\_TIMESTAMP}.
+\end{description}
+Primárny kľúč \texttt{id\_listok} identifikuje každý predaný lístok. Cudzí kľúč
+\texttt{id\_premietanie} určuje premietanie, na ktoré bol lístok zakúpený. Cudzí kľúč
+\texttt{id\_zakaznik} odkazuje na zákazníka, ktorý lístok vlastní.
+
+\subsection{Tabuľka \texttt{Watchlist}}
+Tabuľka reprezentuje zoznam filmov, ktoré si zákazník uložil na sledovanie.
+\begin{description}
+    \item[\texttt{id\_watchlist}] \texttt{int}, primárny kľúč.
+    \item[\texttt{id\_zakaznik}] \texttt{int}, cudzí kľúč na \texttt{Zakaznik}.
+    \item[\texttt{id\_film}] \texttt{int}, cudzí kľúč na \texttt{Film}.
+    \item[\texttt{datum\_pridania}] \texttt{datetime}, \texttt{NOT NULL}.
+\end{description}
+Primárny kľúč \texttt{id\_watchlist} identifikuje každý záznam vo watchliste. Tabuľka realizuje
+vzťah M:N medzi zákazníkom a filmom, preto obsahuje cudzie kľúče \texttt{id\_zakaznik} a
+\texttt{id\_film}.
+
+\subsection{Tabuľka \texttt{Zamestnanec}}
+Tabuľka eviduje zamestnancov pracujúcich v kine.
+\begin{description}
+    \item[\texttt{id\_zamestnanec}] \texttt{int}, primárny kľúč.
+    \item[\texttt{id\_kino}] \texttt{int}, cudzí kľúč na \texttt{Kino}.
+    \item[\texttt{meno}] \texttt{varchar(50)}, \texttt{NOT NULL}.
+    \item[\texttt{priezvisko}] \texttt{varchar(50)}, \texttt{NOT NULL}.
+    \item[\texttt{email}] \texttt{varchar(100)}, \texttt{UNIQUE}.
+    \item[\texttt{pozicia}] \texttt{varchar(50)}, nepovinný atribút.
+\end{description}
+Primárny kľúč \texttt{id\_zamestnanec} je umelý identifikátor zamestnanca.
+Cudzí kľúč \texttt{id\_kino} určuje, v ktorom kine zamestnanec pracuje.
+
+\subsection{Tabuľka \texttt{Dochadzka}}
+Tabuľka eviduje pracovnú dochádzku zamestnancov.
+\begin{description}
+    \item[\texttt{id\_dochadzka}] \texttt{int}, primárny kľúč.
+    \item[\texttt{id\_zamestnanec}] \texttt{int}, cudzí kľúč na \texttt{Zamestnanec}.
+    \item[\texttt{cas\_prichodu}] \texttt{datetime}, \texttt{NOT NULL}.
+    \item[\texttt{cas\_odchodu}] \texttt{datetime}, nepovinný atribút.
+    \item[\texttt{poznamka}] \texttt{varchar(255)}, nepovinný atribút.
+\end{description}
+Primárny kľúč \texttt{id\_dochadzka} jednoznačne identifikuje každý záznam dochádzky.
+Cudzí kľúč \texttt{id\_zamestnanec} zabezpečuje prepojenie dochádzky so zamestnancom.
+
+\section{Vzťahy a referenčná integrita}
+\label{sec:vztahy}
+
+\subsection{Kino -- Kinosala}
+Typ vzťahu: 1:N. Jedno kino môže obsahovať viacero kinosál. Každá kinosála musí patriť
+práve jednému kinu. Pri pokuse o vymazanie kina, ktoré obsahuje kinosály, je nastavené
+pravidlo \texttt{ON DELETE RESTRICT}, aby sa zabránilo odstráneniu kina, ktoré má existujúce
+sály.
+
+\subsection{Film -- Premietanie}
+Typ vzťahu: 1:N. Jeden film môže mať viacero premietaní. Každé premietanie musí mať
+priradený práve jeden film (povinný vzťah). Pri pokuse o vymazanie filmu, ktorý má
+naplánované premietania, je nastavené pravidlo \texttt{ON DELETE RESTRICT}.
+
+\subsection{Premietanie -- Listok}
+Typ vzťahu: 1:N. Jedno premietanie môže mať viacero predaných lístkov. Pri zrušení
+premietania je možné použiť pravidlo \texttt{ON DELETE CASCADE}, čo zabezpečí automatické
+odstránenie všetkých lístkov na dané premietanie.
+
+\subsection{Zakaznik -- Listok}
+Typ vzťahu: 1:N. Jeden zákazník môže vlastniť viacero lístkov. Každý lístok musí patriť
+práve jednému zákazníkovi.
+
+\subsection{Film -- Watchlist -- Zakaznik}
+Typ vzťahu: M:N. Jeden zákazník môže sledovať viacero filmov a jeden film môže byť
+sledovaný viacerými zákazníkmi. Tento vzťah je realizovaný pomocou tabuľky
+\texttt{Watchlist}.
+
+\subsection{Zamestnanec -- Dochadzka}
+Typ vzťahu: 1:N. Jeden zamestnanec môže mať viacero záznamov dochádzky. Pri vymazaní
+zamestnanca sa jeho záznamy dochádzky odstránia pomocou pravidla \texttt{ON DELETE CASCADE}.
+
+\section{Reflexia}
+\label{sec:reflexia}
+
+Pri návrhu databázového modelu sme postupovali iteratívne. Najprv sme vytvorili základný
+konceptuálny model systému, ktorý obsahoval hlavné entity ako \texttt{Film}, \texttt{Premietanie},
+\texttt{Kinosala} a \texttt{Zakaznik}. Následne sme postupne dopĺňali ďalšie entity a vzťahy medzi
+nimi, pričom sme pridávali cudzie kľúče a integritné obmedzenia.
+
+Najviac času nám zabrala analýza vzťahov medzi entitami \texttt{Film}, \texttt{Premietanie} a
+\texttt{Listok}. Bolo potrebné správne navrhnúť model tak, aby jeden film mohol mať viacero
+premietaní a zároveň aby bolo možné evidovať jednotlivé predané miesta na konkrétne
+premietanie.
+
+Tému kina sme si zvolili preto, že ide o doménu, ktorá je dobre pochopiteľná a umožňuje
+jasne demonštrovať rôzne typy vzťahov v databáze, napríklad vzťahy 1:N medzi filmom a
+premietaním alebo M:N medzi zákazníkom a filmom prostredníctvom tabuľky \texttt{Watchlist}.
+
+% ─── Bibliografia (môže zostať prázdna) ───────────────────────────────────────
+\printbibliography
 
 \end{document}

@@ -1,0 +1,17 @@
+sequenceDiagram
+    actor Z as Zákazník
+    participant S as Systém
+    participant DB as Databáza
+
+    Z->>S: Zvolí "Pridať do watchlistu"
+    S->>DB: Overí, či film už je vo watchliste
+
+    alt Film už je vo watchliste
+        DB-->>S: Film nájdený
+        S-->>Z: Informuje, že film je už uložený
+    else Film nie je vo watchliste
+        DB-->>S: Film nenájdený
+        S->>DB: Pridá film do watchlistu
+        DB-->>S: Potvrdenie
+        S-->>Z: Film úspešne pridaný do watchlistu
+    end

@@ -1,0 +1,9 @@
+sequenceDiagram
+    actor Z as Zákazník
+    participant S as Systém
+    participant DB as Databáza
+
+    Z->>S: Otvorí históriu premietaní
+    S->>DB: Načíta zoznam ukončených premietaní
+    DB-->>S: Dáta o minulých premietaniach
+    S-->>Z: Zobrazí zoznam ukončených filmov

@@ -1,0 +1,15 @@
+sequenceDiagram
+    actor Z as Zákazník
+    participant S as Systém
+    participant DB as Databáza
+
+    Z->>S: Otvorí sekciu "História filmov"
+    S->>DB: Nacíta históriu navštívených premietaní zákazníka
+
+    alt Existujú záznamy
+        DB-->>S: Zoznam navštívených premietaní
+        S-->>Z: Zobrazí prehladnú históriu
+    else História je prázdna
+        DB-->>S: Žiadne záznamy nenájdené
+        S-->>Z: Informuje o prázdnej histórii
+    end

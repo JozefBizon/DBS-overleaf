@@ -1,0 +1,323 @@
+1. Špecifikácia systému
+1.1 Popis systému
+Navrhovaný systém predstavuje informačný systém pre kino, ktorý umožňuje správu filmov,
+premietaní, kinosál, zákazníkov a lístkov. Systém poskytuje funkcionality pre zákazníkov aj
+zamestnancov kina.
+Primárnym cieľom systému je umožniť zákazníkom jednoducho vyhľadávať filmy, kupovať
+lístky na konkrétne premietania a sledovať históriu filmov, ktoré navštívili. Okrem toho
+systém poskytuje možnosť ukladať filmy do zoznamu sledovania (watchlist), aby bol zákazník
+informovaný o budúcich premietaniach.
+Z pohľadu kina systém umožňuje spravovať kinosály, premietania filmov a evidovať
+zamestnancov spolu s ich dochádzkou.
+Systém tak centralizuje všetky informácie súvisiace s prevádzkou kina a zjednodušuje prácu
+so zákazníkmi aj zamestnancami.
+2. Aktéri systému
+2.1 Zákazník
+Zákazník predstavuje osobu, ktorá využíva služby kina.
+Pomocou systému môže:
+• vyhľadávať filmy
+• prezerať premietania filmov
+• kupovať lístky
+• vracať lístky
+• ukladať filmy do watchlistu
+• prezerať históriu navštívených filmov
+Zákazník interaguje so systémom najmä pri rezervácii alebo nákupe lístkov.
+2.2 Zamestnanec
+Zamestnanec je pracovník kina, ktorý využíva systém na evidenciu pracovnej dochádzky.
+Jeho hlavné úlohy v systéme sú:
+• zaznamenanie príchodu do práce
+• zaznamenanie odchodu z práce
+• evidencia pracovných záznamov
+3. Doménový model systému
+Systém obsahuje viacero základných objektov (entít), ktoré reprezentujú reálne prvky kina.
+Kino
+Kino predstavuje organizáciu, ktorá prevádzkuje premietanie filmov.
+Kino obsahuje:
+• viacero kinosál
+• zamestnancov
+• plán premietaní
+Kinosála
+Kinosála je miestnosť, v ktorej sa premietajú filmy.
+Každá kinosála má:
+• kapacitu miest
+• označenie
+Premietanie filmu sa vždy koná v konkrétnej kinosále.
+Film
+Film predstavuje audiovizuálne dielo, ktoré je premietané v kine.
+Film môže byť premietaný viackrát a môže byť pridaný do watchlistu zákazníkov.
+Premietanie
+Premietanie predstavuje konkrétnu projekciu filmu v určitom čase a v konkrétnej kinosále.
+Obsahuje informácie o:
+• filme
+• čase začiatku
+• cene lístka
+• kinosále
+Lístok
+Lístok predstavuje rezerváciu alebo zakúpenie miesta na konkrétne premietanie filmu.
+Obsahuje informácie o:
+• zákazníkovi
+• premietaní
+• mieste v sále
+• stave lístka
+• čase predaja
+Watchlist
+Watchlist predstavuje zoznam filmov, ktoré si zákazník uložil, aby ich mohol sledovať.
+Zamestnanec
+Zamestnanec je osoba pracujúca v kine.
+Systém eviduje informácie o zamestnancoch a ich pracovnej dochádzke.
+Dochádzka
+Dochádzka predstavuje evidenciu pracovného času zamestnanca.
+Obsahuje:
+• čas príchodu
+• čas odchodu
+• poznámku
+4. Biznis pravidlá systému
+Systém musí dodržiavať nasledujúce pravidlá:
+1. Premietanie musí byť priradené ku konkrétnemu filmu.
+2. Premietanie sa koná v konkrétnej kinosále.
+3. Zákazník môže vlastniť viacero lístkov.
+4. Lístok musí byť vždy priradený ku konkrétnemu premietaniu.
+5. Počet predaných lístkov nesmie prekročiť kapacitu kinosály.
+6. Zákazník môže vrátiť lístok len pred začiatkom premietania.
+7. Film môže byť pridaný do watchlistu iba ak existuje v systéme.
+8. Zamestnanec môže mať viacero záznamov dochádzky.
+5. Používateľské scenáre
+UC1 – Nákup lístka
+Popis
+Zákazník si zakúpi lístok na konkrétne premietanie filmu.
+Hlavný scenár
+1. Zákazník vyhľadá film v systéme.
+2. Systém zobrazí dostupné premietania filmu.
+3. Zákazník si vyberie konkrétne premietanie.
+4. Systém zobrazí dostupné miesta v kinosále.
+5. Zákazník vyberie miesto.
+6. Systém overí dostupnosť miesta.
+7. Systém vytvorí lístok.
+8. Systém potvrdí nákup lístka.
+Alternatívny scenár
+A1 – Miesto je už obsadené
+1. Systém zistí, že vybrané miesto je už obsadené.
+2. Systém zobrazí upozornenie zákazníkovi.
+3. Zákazník si vyberie iné miesto.
+Dátová vrstva
+Systém vykoná SELECT dotaz do tabuľky Premietanie a Kinosala, aby overil existenciu
+premietania a kapacitu kinosály.
+Následne vykoná SELECT do tabuľky Listok, aby overil, či je vybrané miesto voľné.
+Ak je miesto dostupné, systém vykoná:
+INSERT INTO Listok
+s hodnotami:
+• id_premietanie
+• id_zakaznik
+• kod_miesta
+• stav_listka
+• cas_predaja
+Podporný UML diagram
+UC2 – Pridanie filmu do watchlistu
+Hlavný scenár
+1. Zákazník vyhľadá film.
+2. Zákazník zvolí možnosť „Pridať do watchlistu“.
+3. Systém overí existenciu filmu.
+4. Systém uloží film do watchlistu.
+Alternatívny scenár
+A1 – Film je už vo watchliste
+1. Systém zistí, že film je už uložený vo watchliste zákazníka.
+2. Systém zobrazí upozornenie, že film už je sledovaný.
+Dátová vrstva
+Systém vykoná:
+SELECT * FROM Film
+aby overil existenciu filmu.
+Následne vykoná kontrolu v tabuľke Watchlist, či už záznam existuje.
+Ak neexistuje, vykoná:
+INSERT INTO Watchlist
+s hodnotami:
+• id_zakaznik
+• id_film
+• datum_pridania
+UML diagram
+UC3 – Vrátenie lístka
+Hlavný scenár
+1. Zákazník otvorí zoznam svojich lístkov.
+2. Vyberie lístok.
+3. Zvolí možnosť vrátenia lístka.
+4. Systém overí čas začiatku premietania.
+5. Systém označí lístok ako vrátený.
+Alternatívny scenár
+A1 – Premietanie už začalo
+1. Systém zistí, že aktuálny čas je po začiatku premietania.
+2. Systém vrátenie lístka neumožní.
+Dátová vrstva
+Systém vykoná SELECT z tabuľky Listok a Premietanie.
+Ak je čas premietania ešte v budúcnosti, vykoná:
+UPDATE Listok
+SET stav_listka = 'vrateny'
+UC4 – Zobrazenie histórie filmov
+Hlavný scenár
+1. Zákazník otvorí svoj profil.
+2. Zvolí možnosť „História filmov“.
+3. Systém vyhľadá lístky zákazníka.
+4. Systém zobrazí zoznam filmov.
+Alternatívny scenár
+A1 – Zákazník ešte nenavštívil žiadne premietanie
+Systém zobrazí informáciu, že história je prázdna.
+Dátová vrstva
+Systém vykoná JOIN medzi tabuľkami:
+• Listok
+• Premietanie
+• Film
+aby získal zoznam filmov navštívených zákazníkom.
+UC5 – Zaznamenanie dochádzky
+Hlavný scenár
+1. Zamestnanec sa prihlási do systému.
+2. Zvolí možnosť „Zaznamenať príchod“.
+3. Systém uloží čas príchodu.
+Alternatívny scenár
+A1 – Zamestnanec zaznamenáva odchod
+1. Zamestnanec zvolí možnosť „Zaznamenať odchod“.
+2. Systém aktualizuje existujúci záznam dochádzky.
+Dátová vrstva
+Systém vykoná:
+INSERT INTO Dochadzka
+pri príchode.
+Pri odchode vykoná:
+UPDATE Dochadzka
+SET cas_odchodu
+UC6 – Zobrazenie histórie premietaní
+Hlavný scenár
+1. Zákazník otvorí sekciu histórie.
+2. Systém vyhľadá premietania.
+3. Zobrazí zoznam filmov.
+Alternatívny scenár
+A1 – Neexistujú žiadne premietania
+Systém zobrazí informáciu o prázdnom zozname.
+Dátová vrstva
+Systém vykoná SELECT s JOIN medzi:
+• Premietanie
+• Film
+6. Databázový model
+Databázový model systému pozostáva z deviatich tabuliek:
+• Kino
+• Kinosala
+• Film
+• Premietanie
+• Zákazník
+• Lístok
+• Watchlist
+• Zamestnanec
+• Dochádzka
+Diagram databázy je uvedený na obrázku.
+7. Technický popis tabuliek
+Tabuľka Kino
+Účel tabuľky je evidovať základné informácie o kinách v systéme. Každé kino predstavuje
+prevádzku, ktorá obsahuje viacero kinosál a zamestnáva pracovníkov.
+Atribút Typ Obmedzenia
+id_kino int PK, IDENTITY
+Atribút Typ Obmedzenia
+nazov varchar(100) NOT NULL
+adresa varchar(255) -
+kontakt varchar(50) UNIQUE
+Primárny kľúč id_kino je umelý identifikátor. Tento prístup zaručuje stabilitu databázy aj pri
+zmene údajov kina (napríklad pri zmene názvu alebo adresy). Tabuľka je referencovaná z
+tabuliek Kinosala a Zamestnanec.
+Tabuľka Premietanie
+Tabuľka eviduje konkrétne premietania filmov v jednotlivých kinosálach. Každý záznam
+reprezentuje jedno premietanie filmu v určitom čase.
+Atribút Typ Obmedzenia
+id_premietanie int PK
+id_film int FK → Film
+id_sala int FK → Kinosala
+cas_zaciatku datetime NOT NULL
+cena_zakladna decimal(10,2) CHECK (>0)
+Primárny kľúč id_premietanie jednoznačne identifikuje každé premietanie.
+Cudzí kľúč id_film odkazuje na tabuľku Film a určuje, ktorý film sa premieta.
+Cudzí kľúč id_sala odkazuje na tabuľku Kinosala, čím určuje, v ktorej sále sa premietanie
+koná.
+Tabuľka Lístok
+Tabuľka slúži na evidenciu predaných lístkov na jednotlivé premietania. Každý lístok
+reprezentuje jedno konkrétne miesto na premietaní.
+Atribút Typ Obmedzenia
+id_listok int PK
+id_premietanie int FK → Premietanie
+Atribút Typ Obmedzenia
+id_zakaznik int FK → Zakaznik
+kod_miesta varchar(10) NOT NULL
+stav_listka varchar(20) DEFAULT 'platny'
+cas_predaja datetime DEFAULT CURRENT_TIMESTAMP
+Primárny kľúč id_listok identifikuje každý predaný lístok.
+Cudzí kľúč id_premietanie určuje premietanie, na ktoré bol lístok zakúpený.
+Cudzí kľúč id_zakaznik odkazuje na zákazníka, ktorý lístok vlastní.
+Tabuľka Watchlist
+Tabuľka reprezentuje zoznam filmov, ktoré si zákazník uložil na sledovanie.
+Atribút Typ Obmedzenia
+id_watchlist int PK
+id_zakaznik int FK → Zakaznik
+id_film int FK → Film
+datum_pridania datetime NOT NULL
+Primárny kľúč id_watchlist identifikuje každý záznam vo watchliste.
+Tabuľka realizuje vzťah M:N medzi zákazníkom a filmom, preto obsahuje cudzie kľúče
+id_zakaznik a id_film.
+Tabuľka Zamestnanec
+Tabuľka eviduje zamestnancov pracujúcich v kine.
+Atribút Typ Obmedzenia
+id_zamestnanec int PK
+id_kino int FK → Kino
+meno varchar(50) NOT NULL
+priezvisko varchar(50) NOT NULL
+Atribút Typ Obmedzenia
+email varchar(100) UNIQUE
+pozicia varchar(50) -
+Primárny kľúč id_zamestnanec je umelý identifikátor zamestnanca.
+Cudzí kľúč id_kino určuje, v ktorom kine zamestnanec pracuje.
+Tabuľka Dochádzka
+Tabuľka eviduje pracovnú dochádzku zamestnancov.
+Atribút Typ Obmedzenia
+id_dochadzka int PK
+id_zamestnanec int FK → Zamestnanec
+cas_prichodu datetime NOT NULL
+cas_odchodu datetime -
+poznamka varchar(255) -
+Primárny kľúč id_dochadzka jednoznačne identifikuje každý záznam dochádzky.
+Cudzí kľúč id_zamestnanec zabezpečuje prepojenie dochádzky so zamestnancom.
+8. Popis vzťahov a referenčná integrita
+Kino – Kinosala
+Typ vzťahu: 1:N
+Jedno kino môže obsahovať viacero kinosál.
+Každá kinosála musí patriť práve jednému kinu.
+Pri pokuse o vymazanie kina, ktoré obsahuje kinosály, je nastavené pravidlo:
+ON DELETE RESTRICT
+aby sa zabránilo odstráneniu kina, ktoré má existujúce sály.
+Film – Premietanie
+Typ vzťahu: 1:N
+Jeden film môže mať viacero premietaní.
+Každé premietanie musí mať priradený práve jeden film (povinný vzťah).
+Pri pokuse o vymazanie filmu, ktorý má naplánované premietania, je nastavené pravidlo:
+ON DELETE RESTRICT
+Premietanie – Lístok
+Typ vzťahu: 1:N
+Jedno premietanie môže mať viacero predaných lístkov.
+Pri zrušení premietania je možné použiť pravidlo:
+ON DELETE CASCADE
+čo zabezpečí automatické odstránenie všetkých lístkov na dané premietanie.
+Zákazník – Lístok
+Typ vzťahu: 1:N
+Jeden zákazník môže vlastniť viacero lístkov.
+Každý lístok musí patriť práve jednému zákazníkovi.
+Film – Watchlist – Zákazník
+Typ vzťahu: M:N
+Jeden zákazník môže sledovať viacero filmov a jeden film môže byť sledovaný viacerými
+zákazníkmi. Tento vzťah je realizovaný pomocou tabuľky Watchlist.
+Zamestnanec – Dochádzka
+Typ vzťahu: 1:N
+Jeden zamestnanec môže mať viacero záznamov dochádzky.
+Pri vymazaní zamestnanca sa jeho záznamy dochádzky odstránia pomocou pravidla:
+ON DELETE CASCADE
+9. Reflexia
+Pri návrhu databázového modelu sme postupovali iteratívne. Najprv sme vytvorili základný
+konceptuálny model systému, ktorý obsahoval hlavné entity ako Film, Premietanie, Kinosála
+a Zákazník. Následne sme postupne dopĺňali ďalšie entity a vzťahy medzi nimi, pričom sme
+pridávali cudzie kľúče a integritné obmedzenia.
+Najviac času nám zabrala analýza vzťahov medzi entitami Film, Premietanie a Lístok. Bolo
+potrebné správne navrhnúť model tak, aby jeden film mohol mať viacero premietaní a
+zároveň aby bolo možné evidovať jednotlivé predané miesta na konkrétne premietanie.
+Tému kina sme si zvolili preto, že ide o doménu, ktorá je dobre pochopiteľná a umožňuje
+jasne demonštrovať rôzne typy vzťahov v databáze, napríklad vzťahy 1:N medzi filmom a
+premietaním alebo M:N medzi zákazníkom a filmom prostredníctvom tabuľky watchlist.

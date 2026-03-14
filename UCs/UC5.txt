@@ -1,0 +1,16 @@
+sequenceDiagram
+    actor Zam as Zamestnanec
+    participant S as Systém
+    participant DB as Databáza
+
+    Zam->>S: Prihlási sa a zvolí "Zaznamenať príchod"
+    S->>DB: Vytvorí záznam o príchode zamestnanca
+    DB-->>S: Potvrdenie
+    S-->>Zam: Príchod úspešne zaznamenaný
+
+    Note over Zam, DB: Koniec pracovnej zmeny
+
+    Zam->>S: Zvolí "Zaznamenať odchod"
+    S->>DB: Doplní čas odchodu k aktuálnej zmene
+    DB-->>S: Potvrdenie
+    S-->>Zam: Odchod úspešne zaznamenaný
