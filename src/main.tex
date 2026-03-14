@@ -35,10 +35,10 @@
 \input{lang/sk}
 
 % ─── Student details ─────────────────────────────────────────────────────────
-\newcommand{\StudentName}{Arthur Dent, Alice Cooper}
-\newcommand{\StudyGroup}{Tuesday 11:00}
-\newcommand{\AssignmentNumber}{0}
-\newcommand{\AssignmentTitle}{Template Showcase}
+\newcommand{\StudentName}{Bizoň Jozef, Moško Marek}
+\newcommand{\StudyGroup}{Rucek - Streda 8:00}
+\newcommand{\AssignmentNumber}{1}
+\newcommand{\AssignmentTitle}{Kino}
 \newcommand{\AcademicYear}{2025/2026}
 
 % =============================================================================
@@ -175,6 +175,22 @@ Obsahuje informácie o:
     \item stave lístka,
     \item čase predaja.
 \end{itemize}
+
+\subsection{Miesto}
+
+Miesto predstavuje konkrétne fyzické sedadlo v kinosále. Každé miesto je jednoznačne
+identifikované v rámci sály kombináciou radu a čísla. Miesto obsahuje informácie o:
+
+\begin{itemize}
+    \item kinosále, v ktorej sa nachádza,
+    \item rade sedadla,
+    \item čísle sedadla,
+    \item type miesta (napr. štandard, VIP).
+\end{itemize}
+
+Miesto slúži ako základ pre výber konkrétneho sedadla pri kúpe lístka. Každý lístok odkazuje
+na práve jedno miesto, pričom to isté miesto nemôže byť predané dvakrát na to isté
+premietanie.
 
 \subsection{Watchlist}
 Watchlist predstavuje zoznam filmov, ktoré si zákazník uložil, aby ich mohol sledovať.
