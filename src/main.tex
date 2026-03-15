@@ -253,7 +253,7 @@ Systém vykoná \texttt{SELECT} dotaz do tabuliek \texttt{Premietanie}, \texttt{
 Následne vykoná \texttt{SELECT} do tabuľky \texttt{Listok}, aby overil, či vybrané miesto nie je
 už obsadené na dané premietanie. Ak je miesto dostupné, systém vykoná vloženie záznamu:
 \begin{lstlisting}[language=SQL, caption={Vytvorenie lístka v UC1}]
-INSERT INTO Listok (id_premietanie, id_zakaznik, id_miesto, stav_listka, cas_predaja)
+INSERT INTO Listok (id_premietanie, id_zakaznik, id_miesto, cena, stav_listka, cas_predaja)
 VALUES (...);
 \end{lstlisting}
 
@@ -480,7 +480,8 @@ zaradený do watchlistu viacerých zákazníkov.
     \item[\texttt{id\_film}] \texttt{int}, primárny kľúč, \texttt{IDENTITY}.
     \item[\texttt{nazov}] \texttt{varchar(100)}, \texttt{NOT NULL}.
     \item[\texttt{zaner}] \texttt{varchar(50)}, nepovinný atribút.
-    \item[\texttt{datum\_vydania}] \texttt{date}, nepovinný atribút.
+    \item[\texttt{datum\_premiery}] \texttt{date}, nepovinný atribút.
+    \item[\texttt{dlzka\_minut}] \texttt{int}, \texttt{CHECK (dlzka\_minut > 0)}.
 \end{description}
 
 Primárny kľúč \texttt{id\_film} je umelý identifikátor filmu.
@@ -527,6 +528,7 @@ vracať ich, prezerať históriu navštívených filmov a vytvárať si watchlis
 \begin{description}
     \item[\texttt{id\_zakaznik}] \texttt{int}, primárny kľúč, \texttt{IDENTITY}.
     \item[\texttt{meno}] \texttt{varchar(50)}, \texttt{NOT NULL}.
+    \item[\texttt{priezvisko}] \texttt{varchar(50)}, \texttt{NOT NULL}.
     \item[\texttt{email}] \texttt{varchar(100)}, \texttt{NOT NULL}, \texttt{UNIQUE}.
     \item[\texttt{datum\_registracie}] \texttt{datetime}, \texttt{DEFAULT CURRENT\_TIMESTAMP}.
 \end{description}
@@ -543,6 +545,7 @@ reprezentuje jedno konkrétne miesto na premietaní.
     \item[\texttt{id\_premietanie}] \texttt{int}, cudzí kľúč na \texttt{Premietanie}, \texttt{NOT NULL}.
     \item[\texttt{id\_zakaznik}] \texttt{int}, cudzí kľúč na \texttt{Zakaznik}, \texttt{NOT NULL}.
     \item[\texttt{id\_miesto}] \texttt{int}, cudzí kľúč na \texttt{Miesto}, \texttt{NOT NULL}.
+    \item[\texttt{cena}] \texttt{decimal(10,2)}, \texttt{NOT NULL}.
     \item[\texttt{stav\_listka}] \texttt{varchar(20)}, \texttt{DEFAULT 'platny'}.
     \item[\texttt{cas\_predaja}] \texttt{datetime}, \texttt{DEFAULT CURRENT\_TIMESTAMP}.
 \end{description}
@@ -550,6 +553,7 @@ Primárny kľúč \texttt{id\_listok} identifikuje každý predaný lístok. Cud
 \texttt{id\_premietanie} určuje premietanie, na ktoré bol lístok zakúpený. Cudzí kľúč
 \texttt{id\_zakaznik} odkazuje na zákazníka, ktorý lístok vlastní.
 Cudzí kľúč \texttt{id\_miesto} určuje konkrétne miesto v kinosále, na ktoré bol lístok vydaný.
+Atribút \texttt{cena} uchováva konečnú cenu lístka zaplatenú zákazníkom pri nákupe.
 Aby nebolo možné predať rovnaké miesto viackrát na to isté premietanie, je nad atribútmi
 \texttt{id\_premietanie} a \texttt{id\_miesto} definované obmedzenie
 \texttt{UNIQUE (id\_premietanie, id\_miesto)}.
@@ -558,13 +562,15 @@ Aby nebolo možné predať rovnaké miesto viackrát na to isté premietanie, je
 Tabuľka reprezentuje zoznam filmov, ktoré si zákazník uložil na sledovanie.
 \begin{description}
     \item[\texttt{id\_watchlist}] \texttt{int}, primárny kľúč.
-    \item[\texttt{id\_zakaznik}] \texttt{int}, cudzí kľúč na \texttt{Zakaznik}.
-    \item[\texttt{id\_film}] \texttt{int}, cudzí kľúč na \texttt{Film}.
+    \item[\texttt{id\_zakaznik}] \texttt{int}, cudzí kľúč na \texttt{Zakaznik}, \texttt{NOT NULL}.
+    \item[\texttt{id\_film}] \texttt{int}, cudzí kľúč na \texttt{Film}, \texttt{NOT NULL}.
     \item[\texttt{datum\_pridania}] \texttt{datetime}, \texttt{NOT NULL}.
 \end{description}
 Primárny kľúč \texttt{id\_watchlist} identifikuje každý záznam vo watchliste. Tabuľka realizuje
 vzťah M:N medzi zákazníkom a filmom, preto obsahuje cudzie kľúče \texttt{id\_zakaznik} a
-\texttt{id\_film}.
+\texttt{id\_film}. Aby nebolo možné pridať rovnaký film do watchlistu toho istého zákazníka
+viackrát, je nad atribútmi \texttt{id\_zakaznik} a \texttt{id\_film} definované obmedzenie
+\texttt{UNIQUE (id\_zakaznik, id\_film)}.
 
 \subsection{Tabuľka \texttt{Zamestnanec}}
 Tabuľka eviduje zamestnancov pracujúcich v kine.
@@ -583,7 +589,7 @@ Cudzí kľúč \texttt{id\_kino} určuje, v ktorom kine zamestnanec pracuje.
 Tabuľka eviduje pracovnú dochádzku zamestnancov.
 \begin{description}
     \item[\texttt{id\_dochadzka}] \texttt{int}, primárny kľúč.
-    \item[\texttt{id\_zamestnanec}] \texttt{int}, cudzí kľúč na \texttt{Zamestnanec}.
+    \item[\texttt{id\_zamestnanec}] \texttt{int}, cudzí kľúč na \texttt{Zamestnanec}, \texttt{NOT NULL}.    
     \item[\texttt{cas\_prichodu}] \texttt{datetime}, \texttt{NOT NULL}.
     \item[\texttt{cas\_odchodu}] \texttt{datetime}, nepovinný atribút.
     \item[\texttt{poznamka}] \texttt{varchar(255)}, nepovinný atribút.
@@ -654,6 +660,10 @@ premietanie.
 Tému kina sme si zvolili preto, že ide o doménu, ktorá je dobre pochopiteľná a umožňuje
 jasne demonštrovať rôzne typy vzťahov v databáze, napríklad vzťahy 1:N medzi filmom a
 premietaním alebo M:N medzi zákazníkom a filmom prostredníctvom tabuľky \texttt{Watchlist}.
+
+Pri kontrole konzistencie dokumentu a pri overovaní súladu medzi textovou špecifikáciou,
+používateľskými scenármi a databázovým modelom sme čiastočne využili aj AI nástroje.
+Výstupy sme následne manuálne kontrolovali a upravovali podľa požiadaviek zadania.
 
 % ─── Bibliografia (môže zostať prázdna) ───────────────────────────────────────
 \printbibliography
