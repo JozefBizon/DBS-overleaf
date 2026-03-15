@@ -216,7 +216,7 @@ Systém musí dodržiavať nasledujúce pravidlá:
     \item Premietanie sa koná v konkrétnej kinosále.
     \item Zákazník môže vlastniť viacero lístkov.
     \item Lístok musí byť vždy priradený ku konkrétnemu premietaniu.
-    \item Počet predaných lístkov nesmie prekročiť kapacitu kinosály.
+    \item Toto pravidlo je zabezpečené aplikačnou logikou alebo databázovým triggerom, ktorý kontroluje počet predaných miest vzhľadom na kapacitu sály.
     \item Zákazník môže vrátiť lístok len pred začiatkom premietania.
     \item Film môže byť pridaný do watchlistu iba ak existuje v systéme.
     \item Zamestnanec môže mať viacero záznamov dochádzky.
@@ -253,7 +253,7 @@ existenciu premietania a kapacitu kinosály. Následne vykoná \texttt{SELECT} d
 \texttt{Listok}, aby overil, či je vybrané miesto voľné. Ak je miesto dostupné, systém vykoná
 vloženie záznamu:
 \begin{lstlisting}[language=SQL, caption={Vytvorenie lístka v UC1}]
-INSERT INTO Listok (id_premietanie, id_zakaznik, kod_miesta, stav_listka, cas_predaja)
+INSERT INTO Listok (id_premietanie, id_zakaznik, id_miesto, stav_listka, cas_predaja)
 VALUES (...);
 \end{lstlisting}
 
@@ -417,10 +417,11 @@ Systém vykoná \texttt{SELECT} s \texttt{JOIN} medzi tabuľkami \texttt{Premiet
 \section{Databázový model}
 \label{sec:db-model}
 
-Databázový model systému pozostáva z deviatich tabuliek:
+Databázový model systému pozostáva z desiatich tabuliek:
 \begin{itemize}
     \item \texttt{Kino},
     \item \texttt{Kinosala},
+    \item \texttt{Miesto},
     \item \texttt{Film},
     \item \texttt{Premietanie},
     \item \texttt{Zakaznik},
@@ -470,6 +471,24 @@ Cudzí kľúč \texttt{id\_film} odkazuje na tabuľku \texttt{Film} a určuje, k
 Cudzí kľúč \texttt{id\_sala} odkazuje na tabuľku \texttt{Kinosala}, čím určuje, v ktorej sále sa
 premietanie koná.
 
+\subsection{Tabuľka \texttt{Miesto}}
+Tabuľka eviduje jednotlivé sedadlá v kinosálach. Každé miesto patrí do konkrétnej
+kinosály a je identifikované kombináciou radu a čísla sedadla.
+
+\begin{description}
+    \item[\texttt{id\_miesto}] \texttt{int}, primárny kľúč, \texttt{IDENTITY}.
+    \item[\texttt{id\_sala}] \texttt{int}, cudzí kľúč na \texttt{Kinosala}, \texttt{NOT NULL}.
+    \item[\texttt{rad}] \texttt{int}, \texttt{NOT NULL}.
+    \item[\texttt{cislo}] \texttt{int}, \texttt{NOT NULL}.
+    \item[\texttt{typ\_miesta}] \texttt{varchar(20)}, \texttt{DEFAULT 'standard'}.
+\end{description}
+
+Primárny kľúč \texttt{id\_miesto} jednoznačne identifikuje každé miesto.
+Cudzí kľúč \texttt{id\_sala} určuje, do ktorej kinosály miesto patrí.
+
+Aby sa zabránilo duplicitným miestam v rámci jednej sály, je definované
+obmedzenie \texttt{UNIQUE (id\_sala, rad, cislo)}.
+
 \subsection{Tabuľka \texttt{Listok}}
 Tabuľka slúži na evidenciu predaných lístkov na jednotlivé premietania. Každý lístok
 reprezentuje jedno konkrétne miesto na premietaní.
@@ -477,13 +496,17 @@ reprezentuje jedno konkrétne miesto na premietaní.
     \item[\texttt{id\_listok}] \texttt{int}, primárny kľúč.
     \item[\texttt{id\_premietanie}] \texttt{int}, cudzí kľúč na \texttt{Premietanie}.
     \item[\texttt{id\_zakaznik}] \texttt{int}, cudzí kľúč na \texttt{Zakaznik}.
-    \item[\texttt{kod\_miesta}] \texttt{varchar(10)}, \texttt{NOT NULL}.
+    \item[\texttt{id\_miesto}] \texttt{int}, cudzí kľúč na \texttt{Miesto}, \texttt{NOT NULL}.
     \item[\texttt{stav\_listka}] \texttt{varchar(20)}, \texttt{DEFAULT 'platny'}.
     \item[\texttt{cas\_predaja}] \texttt{datetime}, \texttt{DEFAULT CURRENT\_TIMESTAMP}.
 \end{description}
 Primárny kľúč \texttt{id\_listok} identifikuje každý predaný lístok. Cudzí kľúč
 \texttt{id\_premietanie} určuje premietanie, na ktoré bol lístok zakúpený. Cudzí kľúč
 \texttt{id\_zakaznik} odkazuje na zákazníka, ktorý lístok vlastní.
+Cudzí kľúč \texttt{id\_miesto} určuje konkrétne miesto v kinosále, na ktoré bol lístok vydaný.
+Aby nebolo možné predať rovnaké miesto viackrát na to isté premietanie, je nad atribútmi
+\texttt{id\_premietanie} a \texttt{id\_miesto} definované obmedzenie
+\texttt{UNIQUE (id\_premietanie, id\_miesto)}.
 
 \subsection{Tabuľka \texttt{Watchlist}}
 Tabuľka reprezentuje zoznam filmov, ktoré si zákazník uložil na sledovanie.
@@ -501,7 +524,7 @@ vzťah M:N medzi zákazníkom a filmom, preto obsahuje cudzie kľúče \texttt{i
 Tabuľka eviduje zamestnancov pracujúcich v kine.
 \begin{description}
     \item[\texttt{id\_zamestnanec}] \texttt{int}, primárny kľúč.
-    \item[\texttt{id\_kino}] \texttt{int}, cudzí kľúč na \texttt{Kino}.
+    \item[\texttt{id\_kino}] \texttt{int}, cudzí kľúč na \texttt{Kino}, \texttt{NOT NULL}.
     \item[\texttt{meno}] \texttt{varchar(50)}, \texttt{NOT NULL}.
     \item[\texttt{priezvisko}] \texttt{varchar(50)}, \texttt{NOT NULL}.
     \item[\texttt{email}] \texttt{varchar(100)}, \texttt{UNIQUE}.
@@ -531,6 +554,13 @@ práve jednému kinu. Pri pokuse o vymazanie kina, ktoré obsahuje kinosály, je
 pravidlo \texttt{ON DELETE RESTRICT}, aby sa zabránilo odstráneniu kina, ktoré má existujúce
 sály.
 
+\subsection{Kinosala -- Miesto}
+Typ vzťahu: 1:N. Jedna kinosála obsahuje viacero miest. Každé miesto musí patriť
+práve jednej kinosále. Tento vzťah je realizovaný pomocou cudzieho kľúča
+\texttt{id\_sala} v tabuľke \texttt{Miesto}. Pri pokuse o vymazanie kinosály,
+ku ktorej existujú evidované miesta, je vhodné nastaviť pravidlo
+\texttt{ON DELETE RESTRICT}.
+
 \subsection{Film -- Premietanie}
 Typ vzťahu: 1:N. Jeden film môže mať viacero premietaní. Každé premietanie musí mať
 priradený práve jeden film (povinný vzťah). Pri pokuse o vymazanie filmu, ktorý má
@@ -540,6 +570,14 @@ naplánované premietania, je nastavené pravidlo \texttt{ON DELETE RESTRICT}.
 Typ vzťahu: 1:N. Jedno premietanie môže mať viacero predaných lístkov. Pri zrušení
 premietania je možné použiť pravidlo \texttt{ON DELETE CASCADE}, čo zabezpečí automatické
 odstránenie všetkých lístkov na dané premietanie.
+
+\subsection{Miesto -- Listok}
+Typ vzťahu: 1:N. Jedno miesto môže byť použité v rôznych lístkoch pre rôzne
+premietania. Na jednom konkrétnom premietaní však môže byť dané miesto
+obsadené najviac raz. Tento vzťah je realizovaný pomocou cudzieho kľúča
+\texttt{id\_miesto} v tabuľke \texttt{Listok}. Jedinečnosť obsadenia miesta
+na konkrétnom premietaní zabezpečuje obmedzenie
+\texttt{UNIQUE (id\_premietanie, id\_miesto)}.
 
 \subsection{Zakaznik -- Listok}
 Typ vzťahu: 1:N. Jeden zákazník môže vlastniť viacero lístkov. Každý lístok musí patriť
