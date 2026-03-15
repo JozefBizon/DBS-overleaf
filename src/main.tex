@@ -216,7 +216,7 @@ Systém musí dodržiavať nasledujúce pravidlá:
     \item Premietanie sa koná v konkrétnej kinosále.
     \item Zákazník môže vlastniť viacero lístkov.
     \item Lístok musí byť vždy priradený ku konkrétnemu premietaniu.
-    \item Toto pravidlo je zabezpečené aplikačnou logikou alebo databázovým triggerom, ktorý kontroluje počet predaných miest vzhľadom na kapacitu sály.
+    \item Počet predaných lístkov nesmie prekročiť kapacitu kinosály.    
     \item Zákazník môže vrátiť lístok len pred začiatkom premietania.
     \item Film môže byť pridaný do watchlistu iba ak existuje v systéme.
     \item Zamestnanec môže mať viacero záznamov dochádzky.
@@ -248,10 +248,10 @@ Systém musí dodržiavať nasledujúce pravidlá:
 \end{enumerate}
 
 \subsubsection*{Dátová vrstva}
-Systém vykoná \texttt{SELECT} dotaz do tabuliek \texttt{Premietanie} a \texttt{Kinosala}, aby overil
-existenciu premietania a kapacitu kinosály. Následne vykoná \texttt{SELECT} do tabuľky
-\texttt{Listok}, aby overil, či je vybrané miesto voľné. Ak je miesto dostupné, systém vykoná
-vloženie záznamu:
+Systém vykoná \texttt{SELECT} dotaz do tabuliek \texttt{Premietanie}, \texttt{Kinosala} a
+\texttt{Miesto}, aby overil existenciu premietania, prislúchajúcej sály a konkrétneho miesta.
+Následne vykoná \texttt{SELECT} do tabuľky \texttt{Listok}, aby overil, či vybrané miesto nie je
+už obsadené na dané premietanie. Ak je miesto dostupné, systém vykoná vloženie záznamu:
 \begin{lstlisting}[language=SQL, caption={Vytvorenie lístka v UC1}]
 INSERT INTO Listok (id_premietanie, id_zakaznik, id_miesto, stav_listka, cas_predaja)
 VALUES (...);
@@ -456,13 +456,44 @@ Primárny kľúč \texttt{id\_kino} je umelý identifikátor. Tento prístup zar
 pri zmene údajov kina (napríklad pri zmene názvu alebo adresy). Tabuľka je referencovaná z
 tabuliek \texttt{Kinosala} a \texttt{Zamestnanec}.
 
+\subsection{Tabuľka \texttt{Kinosala}}
+Tabuľka eviduje jednotlivé kinosály patriace ku konkrétnemu kinu. Každá kinosála predstavuje
+priestor, v ktorom sa uskutočňujú premietania filmov.
+
+\begin{description}
+    \item[\texttt{id\_sala}] \texttt{int}, primárny kľúč, \texttt{IDENTITY}.
+    \item[\texttt{id\_kino}] \texttt{int}, cudzí kľúč na \texttt{Kino}, \texttt{NOT NULL}.
+    \item[\texttt{oznacenie}] \texttt{varchar(20)}, \texttt{NOT NULL}.
+    \item[\texttt{kapacita}] \texttt{int}, \texttt{NOT NULL}, \texttt{CHECK (kapacita > 0)}.
+\end{description}
+
+Primárny kľúč \texttt{id\_sala} jednoznačne identifikuje každú kinosálu.
+Cudzí kľúč \texttt{id\_kino} určuje, ku ktorému kinu kinosála patrí.
+Atribút \texttt{oznacenie} slúži na označenie sály v rámci kina a atribút \texttt{kapacita}
+udáva maximálny počet miest v danej sále.
+
+\subsection{Tabuľka \texttt{Film}}
+Tabuľka eviduje filmy dostupné v systéme. Každý film môže byť premietaný viackrát a môže byť
+zaradený do watchlistu viacerých zákazníkov.
+
+\begin{description}
+    \item[\texttt{id\_film}] \texttt{int}, primárny kľúč, \texttt{IDENTITY}.
+    \item[\texttt{nazov}] \texttt{varchar(100)}, \texttt{NOT NULL}.
+    \item[\texttt{zaner}] \texttt{varchar(50)}, nepovinný atribút.
+    \item[\texttt{datum\_vydania}] \texttt{date}, nepovinný atribút.
+\end{description}
+
+Primárny kľúč \texttt{id\_film} je umelý identifikátor filmu.
+Tento prístup zabezpečuje stabilnú identifikáciu filmu aj v prípade zmeny jeho názvu alebo
+iných atribútov. Tabuľka je referencovaná z tabuliek \texttt{Premietanie} a \texttt{Watchlist}.
+
 \subsection{Tabuľka \texttt{Premietanie}}
 Tabuľka eviduje konkrétne premietania filmov v jednotlivých kinosálach. Každý záznam
 reprezentuje jedno premietanie filmu v určitom čase.
 \begin{description}
     \item[\texttt{id\_premietanie}] \texttt{int}, primárny kľúč.
-    \item[\texttt{id\_film}] \texttt{int}, cudzí kľúč na \texttt{Film}.
-    \item[\texttt{id\_sala}] \texttt{int}, cudzí kľúč na \texttt{Kinosala}.
+    \item[\texttt{id\_film}] \texttt{int}, cudzí kľúč na \texttt{Film}, \texttt{NOT NULL}.
+    \item[\texttt{id\_sala}] \texttt{int}, cudzí kľúč na \texttt{Kinosala}, \texttt{NOT NULL}.
     \item[\texttt{cas\_zaciatku}] \texttt{datetime}, \texttt{NOT NULL}.
     \item[\texttt{cena\_zakladna}] \texttt{decimal(10,2)}, \texttt{CHECK (cena\_zakladna > 0)}.
 \end{description}
@@ -489,13 +520,28 @@ Cudzí kľúč \texttt{id\_sala} určuje, do ktorej kinosály miesto patrí.
 Aby sa zabránilo duplicitným miestam v rámci jednej sály, je definované
 obmedzenie \texttt{UNIQUE (id\_sala, rad, cislo)}.
 
+\subsection{Tabuľka \texttt{Zakaznik}}
+Tabuľka eviduje zákazníkov, ktorí využívajú služby kina. Zákazník môže nakupovať lístky,
+vracať ich, prezerať históriu navštívených filmov a vytvárať si watchlist.
+
+\begin{description}
+    \item[\texttt{id\_zakaznik}] \texttt{int}, primárny kľúč, \texttt{IDENTITY}.
+    \item[\texttt{meno}] \texttt{varchar(50)}, \texttt{NOT NULL}.
+    \item[\texttt{email}] \texttt{varchar(100)}, \texttt{NOT NULL}, \texttt{UNIQUE}.
+    \item[\texttt{datum\_registracie}] \texttt{datetime}, \texttt{DEFAULT CURRENT\_TIMESTAMP}.
+\end{description}
+
+Primárny kľúč \texttt{id\_zakaznik} jednoznačne identifikuje každého zákazníka.
+Atribút \texttt{email} je jedinečný, aby sa zabránilo duplicitnej registrácii rovnakého zákazníka.
+Tabuľka je referencovaná z tabuliek \texttt{Listok} a \texttt{Watchlist}.
+
 \subsection{Tabuľka \texttt{Listok}}
 Tabuľka slúži na evidenciu predaných lístkov na jednotlivé premietania. Každý lístok
 reprezentuje jedno konkrétne miesto na premietaní.
 \begin{description}
     \item[\texttt{id\_listok}] \texttt{int}, primárny kľúč.
-    \item[\texttt{id\_premietanie}] \texttt{int}, cudzí kľúč na \texttt{Premietanie}.
-    \item[\texttt{id\_zakaznik}] \texttt{int}, cudzí kľúč na \texttt{Zakaznik}.
+    \item[\texttt{id\_premietanie}] \texttt{int}, cudzí kľúč na \texttt{Premietanie}, \texttt{NOT NULL}.
+    \item[\texttt{id\_zakaznik}] \texttt{int}, cudzí kľúč na \texttt{Zakaznik}, \texttt{NOT NULL}.
     \item[\texttt{id\_miesto}] \texttt{int}, cudzí kľúč na \texttt{Miesto}, \texttt{NOT NULL}.
     \item[\texttt{stav\_listka}] \texttt{varchar(20)}, \texttt{DEFAULT 'platny'}.
     \item[\texttt{cas\_predaja}] \texttt{datetime}, \texttt{DEFAULT CURRENT\_TIMESTAMP}.
