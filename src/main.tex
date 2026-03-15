@@ -644,23 +644,25 @@ zamestnanca sa jeho záznamy dochádzky odstránia pomocou pravidla \texttt{ON D
 \section{Reflexia}
 \label{sec:reflexia}
 
-Pri návrhu databázového modelu sme postupovali iteratívne. Najprv sme vytvorili základný
-konceptuálny model systému, ktorý obsahoval hlavné entity ako \texttt{Film}, \texttt{Premietanie},
-\texttt{Kinosala} a \texttt{Zakaznik}. Následne sme postupne dopĺňali ďalšie entity a vzťahy medzi
-nimi, pričom sme pridávali cudzie kľúče a integritné obmedzenia.
+Pri návrhu databázového modelu sme postupovali postupne a viackrát sme ho upravovali podľa toho,
+ako sme si spresňovali fungovanie celého systému. Na začiatku sme mali navrhnuté len základné
+entity, ako napríklad \texttt{Film}, \texttt{Premietanie}, \texttt{Kinosala} a \texttt{Zakaznik}.
+Neskôr sme dopĺňali ďalšie tabuľky, vzťahy medzi nimi a potrebné obmedzenia.
 
-Najviac času nám zabrala analýza vzťahov medzi entitami \texttt{Film}, \texttt{Premietanie} a
-\texttt{Listok}. Bolo potrebné správne navrhnúť model tak, aby jeden film mohol mať viacero
-premietaní a zároveň aby bolo možné evidovať jednotlivé predané miesta na konkrétne
-premietanie.
+Najviac času nám zabrala časť okolo tabuliek \texttt{Film}, \texttt{Premietanie} a \texttt{Listok},
+pretože bolo potrebné správne vyriešiť, ako evidovať konkrétne premietania filmu a zároveň aj
+predaj miest na tieto premietania. Dôležité bolo najmä to, aby bolo možné priradiť lístok ku
+konkrétnemu premietaniu a zároveň ku konkrétnemu miestu v sále.
 
-Tému kina sme si zvolili preto, že ide o doménu, ktorá je dobre pochopiteľná a umožňuje
-jasne demonštrovať rôzne typy vzťahov v databáze, napríklad vzťahy 1:N medzi filmom a
-premietaním alebo M:N medzi zákazníkom a filmom prostredníctvom tabuľky \texttt{Watchlist}.
+Tému kina sme si vybrali preto, že je ľahko predstaviteľná a dobre sa na nej ukazujú vzťahy medzi
+jednotlivými tabuľkami. Zároveň nám táto téma prišla dostatočne praktická na to, aby sme na nej
+vedeli navrhnúť viacero zaujímavých scenárov a rôzne typy väzieb, napríklad vzťah 1:N medzi
+filmom a premietaním alebo M:N medzi zákazníkom a filmom cez tabuľku \texttt{Watchlist}.
 
-Pri kontrole konzistencie dokumentu a pri overovaní súladu medzi textovou špecifikáciou,
-používateľskými scenármi a databázovým modelom sme čiastočne využili aj AI nástroje.
-Výstupy sme následne manuálne kontrolovali a upravovali podľa požiadaviek zadania.
+Pri kontrole dokumentu a overovaní, či si jednotlivé časti navzájom neodporujú, sme čiastočne
+využili aj AI nástroje. Pomohli nám hlavne pri kontrole konzistencie medzi textovou časťou,
+scenármi a databázovým modelom. Výstupy sme si však následne prešli, upravili a prispôsobili
+podľa zadania.
 
 % ─── Bibliografia (môže zostať prázdna) ───────────────────────────────────────
 \printbibliography
