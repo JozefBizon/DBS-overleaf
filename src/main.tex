@@ -452,9 +452,7 @@ prevádzku, ktorá obsahuje viacero kinosál a zamestnáva pracovníkov.
     \item[\texttt{adresa}] \texttt{varchar(255)}, nepovinný atribút.
     \item[\texttt{kontakt}] \texttt{varchar(50)}, \texttt{UNIQUE}.
 \end{description}
-Primárny kľúč \texttt{id\_kino} je umelý identifikátor. Tento prístup zaručuje stabilitu databázy aj
-pri zmene údajov kina (napríklad pri zmene názvu alebo adresy). Tabuľka je referencovaná z
-tabuliek \texttt{Kinosala} a \texttt{Zamestnanec}.
+Primárny kľúč \texttt{id\_kino} je identifikátor. Vďaka tomu je možné kino jednoznačne identifikovať aj v prípade, že sa jeho údaje v budúcnosti zmenia, napríklad názov alebo adresa. Tabuľka je referencovaná z tabuliek \texttt{Kinosala} a \texttt{Zamestnanec}.
 
 \subsection{Tabuľka \texttt{Kinosala}}
 Tabuľka eviduje jednotlivé kinosály patriace ku konkrétnemu kinu. Každá kinosála predstavuje
@@ -484,9 +482,8 @@ zaradený do watchlistu viacerých zákazníkov.
     \item[\texttt{dlzka\_minut}] \texttt{int}, \texttt{CHECK (dlzka\_minut > 0)}.
 \end{description}
 
-Primárny kľúč \texttt{id\_film} je umelý identifikátor filmu.
-Tento prístup zabezpečuje stabilnú identifikáciu filmu aj v prípade zmeny jeho názvu alebo
-iných atribútov. Tabuľka je referencovaná z tabuliek \texttt{Premietanie} a \texttt{Watchlist}.
+Primárny kľúč \texttt{id\_film} je identifikátor filmu.
+Identifikátor filmu zostáva rovnaký aj v prípade, že sa zmenia jeho údaje, napríklad názov. Tabuľka je referencovaná z tabuliek \texttt{Premietanie} a \texttt{Watchlist}.
 
 \subsection{Tabuľka \texttt{Premietanie}}
 Tabuľka eviduje konkrétne premietania filmov v jednotlivých kinosálach. Každý záznam
@@ -498,7 +495,7 @@ reprezentuje jedno premietanie filmu v určitom čase.
     \item[\texttt{cas\_zaciatku}] \texttt{datetime}, \texttt{NOT NULL}.
     \item[\texttt{cena\_zakladna}] \texttt{decimal(10,2)}, \texttt{CHECK (cena\_zakladna > 0)}.
 \end{description}
-Primárny kľúč \texttt{id\_premietanie} jednoznačne identifikuje každé premietanie.
+Primárny kľúč \texttt{id\_premietanie} predstavuje každé premietanie.
 Cudzí kľúč \texttt{id\_film} odkazuje na tabuľku \texttt{Film} a určuje, ktorý film sa premieta.
 Cudzí kľúč \texttt{id\_sala} odkazuje na tabuľku \texttt{Kinosala}, čím určuje, v ktorej sále sa
 premietanie koná.
@@ -511,11 +508,11 @@ kinosály a je identifikované kombináciou radu a čísla sedadla.
     \item[\texttt{id\_miesto}] \texttt{int}, primárny kľúč, \texttt{IDENTITY}.
     \item[\texttt{id\_sala}] \texttt{int}, cudzí kľúč na \texttt{Kinosala}, \texttt{NOT NULL}.
     \item[\texttt{rad}] \texttt{int}, \texttt{NOT NULL}.
-    \item[\texttt{cislo}] \texttt{int}, \texttt{NOT NULL}.
+    \item[\texttt{cislo\_miesta}] \texttt{int}, \texttt{NOT NULL}.
     \item[\texttt{typ\_miesta}] \texttt{varchar(20)}, \texttt{DEFAULT 'standard'}.
 \end{description}
 
-Primárny kľúč \texttt{id\_miesto} jednoznačne identifikuje každé miesto.
+Primárny kľúč \texttt{id\_miesto} predstavuje každé miesto.
 Cudzí kľúč \texttt{id\_sala} určuje, do ktorej kinosály miesto patrí.
 
 Aby sa zabránilo duplicitným miestam v rámci jednej sály, je definované
@@ -533,7 +530,7 @@ vracať ich, prezerať históriu navštívených filmov a vytvárať si watchlis
     \item[\texttt{datum\_registracie}] \texttt{datetime}, \texttt{DEFAULT CURRENT\_TIMESTAMP}.
 \end{description}
 
-Primárny kľúč \texttt{id\_zakaznik} jednoznačne identifikuje každého zákazníka.
+Primárny kľúč \texttt{id\_zakaznik} predstavuje každého zákazníka.
 Atribút \texttt{email} je jedinečný, aby sa zabránilo duplicitnej registrácii rovnakého zákazníka.
 Tabuľka je referencovaná z tabuliek \texttt{Listok} a \texttt{Watchlist}.
 
@@ -549,7 +546,7 @@ reprezentuje jedno konkrétne miesto na premietaní.
     \item[\texttt{stav\_listka}] \texttt{varchar(20)}, \texttt{DEFAULT 'platny'}.
     \item[\texttt{cas\_predaja}] \texttt{datetime}, \texttt{DEFAULT CURRENT\_TIMESTAMP}.
 \end{description}
-Primárny kľúč \texttt{id\_listok} identifikuje každý predaný lístok. Cudzí kľúč
+Primárny kľúč \texttt{id\_listok} určuje každý predaný lístok. Cudzí kľúč
 \texttt{id\_premietanie} určuje premietanie, na ktoré bol lístok zakúpený. Cudzí kľúč
 \texttt{id\_zakaznik} odkazuje na zákazníka, ktorý lístok vlastní.
 Cudzí kľúč \texttt{id\_miesto} určuje konkrétne miesto v kinosále, na ktoré bol lístok vydaný.
@@ -566,7 +563,7 @@ Tabuľka reprezentuje zoznam filmov, ktoré si zákazník uložil na sledovanie.
     \item[\texttt{id\_film}] \texttt{int}, cudzí kľúč na \texttt{Film}, \texttt{NOT NULL}.
     \item[\texttt{datum\_pridania}] \texttt{datetime}, \texttt{NOT NULL}.
 \end{description}
-Primárny kľúč \texttt{id\_watchlist} identifikuje každý záznam vo watchliste. Tabuľka realizuje
+Primárny kľúč \texttt{id\_watchlist} určuje každý záznam vo watchliste. Tabuľka realizuje
 vzťah M:N medzi zákazníkom a filmom, preto obsahuje cudzie kľúče \texttt{id\_zakaznik} a
 \texttt{id\_film}. Aby nebolo možné pridať rovnaký film do watchlistu toho istého zákazníka
 viackrát, je nad atribútmi \texttt{id\_zakaznik} a \texttt{id\_film} definované obmedzenie
@@ -582,7 +579,7 @@ Tabuľka eviduje zamestnancov pracujúcich v kine.
     \item[\texttt{email}] \texttt{varchar(100)}, \texttt{UNIQUE}.
     \item[\texttt{pozicia}] \texttt{varchar(50)}, nepovinný atribút.
 \end{description}
-Primárny kľúč \texttt{id\_zamestnanec} je umelý identifikátor zamestnanca.
+Primárny kľúč \texttt{id\_zamestnanec} id zamestnanca.
 Cudzí kľúč \texttt{id\_kino} určuje, v ktorom kine zamestnanec pracuje.
 
 \subsection{Tabuľka \texttt{Dochadzka}}
@@ -594,7 +591,7 @@ Tabuľka eviduje pracovnú dochádzku zamestnancov.
     \item[\texttt{cas\_odchodu}] \texttt{datetime}, nepovinný atribút.
     \item[\texttt{poznamka}] \texttt{varchar(255)}, nepovinný atribút.
 \end{description}
-Primárny kľúč \texttt{id\_dochadzka} jednoznačne identifikuje každý záznam dochádzky.
+Primárny kľúč \texttt{id\_dochadzka} predstavuje každý záznam dochádzky.
 Cudzí kľúč \texttt{id\_zamestnanec} zabezpečuje prepojenie dochádzky so zamestnancom.
 
 \section{Vzťahy a referenčná integrita}
