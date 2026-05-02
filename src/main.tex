@@ -641,6 +641,87 @@ sledovaný viacerými zákazníkmi. Tento vzťah je realizovaný pomocou tabuľk
 Typ vzťahu: 1:N. Jeden zamestnanec môže mať viacero záznamov dochádzky. Pri vymazaní
 zamestnanca sa jeho záznamy dochádzky odstránia pomocou pravidla \texttt{ON DELETE CASCADE}.
 
+\section{Zadanie 3}
+\label{sec:zadanie3}
+
+V rámci Zadania 3 implementujeme vybrané používateľské scenáre čistým SQL v PostgreSQL a podporujeme ich indexmi.
+Nižšie uvádzame prvý z dvoch plánovaných procesov (druhý doplníme neskôr) a súhrn indexov zo súboru \texttt{indexy.sql}.
+
+\subsection{Zmena oproti UC6 v Zadaní 1}
+
+Use case \textbf{UC6 -- Zobrazenie histórie premietaní} bol v špecifikácii popísaný ako všeobecný výpis premietaní spojených s filmami (\texttt{JOIN} \texttt{Premietanie} -- \texttt{Film}) bez väzby na konkrétneho používateľa.
+Pre potreby Zadania 3 sme proces upravili tak, aby zodpovedal realite profilu zákazníka: história sa zobrazuje \textbf{iba pre prihláseného zákazníka} a vychádza z jeho zakúpených lístkov (\texttt{Listok}), nie len zo zoznamu všetkých premietaní.
+Zákazník tak vidí filmy (premietania), ktoré skutočne navštívil alebo si na ne zakúpil lístok (podľa filtrovania podľa stavu lístka).
+
+\subsection{Proces 1 -- História premietaní z pohľadu zákazníka}
+
+\textbf{Viazba na scenár:} nadväzuje na UC6 po úprave -- zákazník v profile vyžiada históriu svojich návštev súvisiacich s premietaniami.
+
+\textbf{Vstup:} identifikátor zákazníka (\texttt{id\_zakaznik}), v ukážkovom skripte konštanta \texttt{42}.
+Voliteľne možno sprísniť výber len na platné lístky (\texttt{stav\_listka = 'platny'}), aby sa do histórie nedostali vrátené alebo neplatné záznamy.
+
+\textbf{Výstup:} pre každý relevantný lístok riadok s filmom, kinom, označením sály, časom začiatku premietania, miestom v sále (rad, číslo, typ), cenou a stavom lístka.
+Dotaz navyše používa oknové funkcie (\texttt{SUM \ldots OVER}, \texttt{COUNT \ldots OVER}) na kumulatívnu útratu podľa času predaja, celkovú útratu a počet lístkov v rámci výslednej množiny -- čo predstavuje analytický prvok nad transakčnými dátami.
+
+\textbf{SQL implementácia} je v súbore \texttt{historia\_premietani.sql}; jej podstata je nasledujúca:
+
+\begin{lstlisting}[language=SQL, caption={História premietaní pre konkrétneho zákazníka (PostgreSQL)}]
+SELECT
+    l.id_listok,
+    f.nazov AS film,
+    k.nazov AS kino,
+    ks.oznacenie AS sala,
+    p.cas_zaciatku,
+    m.rad,
+    m.cislo_miesta,
+    m.typ_miesta,
+    l.cena,
+    l.stav_listka,
+    l.cas_predaja,
+    SUM(l.cena) FILTER (WHERE l.stav_listka = 'platny')
+        OVER (ORDER BY l.cas_predaja) AS kumulativne_utraty,
+    SUM(l.cena) FILTER (WHERE l.stav_listka = 'platny')
+        OVER () AS celkova_utrata,
+    COUNT(*) OVER () AS pocet_listkov_celkom
+FROM Listok l
+JOIN Premietanie p ON p.id_premietanie = l.id_premietanie
+JOIN Film f        ON f.id_film = p.id_film
+JOIN Kinosala ks   ON ks.id_sala = p.id_sala
+JOIN Kino k        ON k.id_kino = ks.id_kino
+JOIN Miesto m      ON m.id_miesto = l.id_miesto
+WHERE l.id_zakaznik = 42
+  AND l.stav_listka = 'platny'
+ORDER BY l.cas_predaja DESC;
+\end{lstlisting}
+
+\textbf{Meranie plánu:} v skripte sú poznámky z behu \texttt{EXPLAIN ANALYZE} pred a po pridaní indexov (orientačné časy plánovania a vykonania, počty bufferov).
+Po nasadení kompozitného indexu na \texttt{(id\_zakaznik, stav\_listka)} klesol v našom meraní čas vykonania približne z $\sim$0{,}59\,ms na $\sim$0{,}27\,ms pri danom objeme dát.
+
+\subsection{Druhý proces}
+
+Druhý z dvoch procesov podľa zadania zatiaľ nie je v dokumentácii rozpracovaný; doplníme ho dodatočne spolu s vlastným dotazom a prípadnými ďalšími indexmi.
+
+\subsection{Indexy (\texttt{indexy.sql})}
+
+Pre dotaz na históriu lístkov zákazníka sú kľúčové podmienky \texttt{WHERE l.id\_zakaznik = \ldots} a filter podľa \texttt{stav\_listka}.
+Definovali sme tieto indexy nad tabuľkou \texttt{Listok}:
+
+\begin{description}
+    \item[\texttt{idx\_listok\_zakaznik (id\_zakaznik)}]
+        Podporuje vyhľadanie všetkých lístkov daného zákazníka bez nutnosti sekvenčného prechodu celej tabuľky \texttt{Listok}.
+        Vyhýba sa nákladnému \emph{Seq Scan} pri výbere riadkov podľa zákazníka.
+
+    \item[\texttt{idx\_listok\_stav (stav\_listka)}]
+        Pomáha dotazom, ktoré filtrujú alebo agregujú podľa stavu lístka (\texttt{platny}, \texttt{vratený} a pod.).
+        Môže byť užitočný aj v iných reportoch nad \texttt{Listok}.
+
+    \item[\texttt{idx\_listok\_zakaznik\_stav (id\_zakaznik, stav\_listka)}]
+        Kombinuje obe kritériá v jednom indexe v poradí zodpovedajúcom najčastejšiemu filtrovaniu v histórii profilu zákazníka.
+        Plánovač môže efektívne zužovať množinu riadkov naraz podľa zákazníka aj stavu, čo znižuje počet čítaných blokov pred spojením s \texttt{Premietanie}, \texttt{Film}, \texttt{Kinosala}, \texttt{Kino} a \texttt{Miesto}.
+\end{description}
+
+Primárne a jedinečné kľúče (\texttt{id\_listok}, \texttt{UNIQUE (id\_premietanie, id\_miesto)}) už kryjú niektoré spojenia; uvedené indexy sú \emph{doplnkové} a zamerané konkrétne na proces histórie podľa zákazníka.
+
 \section{Reflexia}
 \label{sec:reflexia}
 
