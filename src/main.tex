@@ -8,11 +8,20 @@
 \usepackage[T1]{fontenc}
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{graphicx}
-\usepackage{hyperref}
 \usepackage{booktabs}       % nicer tables (\toprule, \midrule, \bottomrule)
 \usepackage{float}          % [H] placement for figures and tables
 \usepackage{xcolor}         % colors (used by listings)
+
+% ─── Language (must load babel before listings so lstlisting is safe with Slovak shorthands)
+\input{lang/sk}
+
 \usepackage{listings}       % code listings
+
+% ─── Bibliography ────────────────────────────────────────────────────────────
+\usepackage[style=numeric, backend=bibtex]{biblatex}
+\addbibresource{references.bib}
+
+\usepackage{hyperref}
 \hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue!70!black}
 
 % ─── Code listing style ─────────────────────────────────────────────────────
@@ -23,16 +32,11 @@
     numbers=left,
     numberstyle=\tiny\color{gray},
     xleftmargin=2em,
-    framexleftmargin=1.5em
+    framexleftmargin=1.5em,
+    columns=fullflexible,
+    keepspaces=true
 }
 % Pro tip: for syntax highlighting, look into the 'minted' package.
-
-% ─── Bibliography ────────────────────────────────────────────────────────────
-\usepackage[style=numeric, backend=bibtex]{biblatex}
-\addbibresource{references.bib}
-
-% ─── Language (swap to lang/sk for Slovak) ───────────────────────────────────
-\input{lang/sk}
 
 % ─── Student details ─────────────────────────────────────────────────────────
 \newcommand{\StudentName}{Bizoň Jozef, Moško Marek}
