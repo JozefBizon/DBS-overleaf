@@ -788,7 +788,7 @@ Voliteľne možno sprísniť výber len na platné lístky (\texttt{stav\_listka
 \textbf{Výstup:} pre každý relevantný lístok riadok s filmom, kinom, označením sály, časom začiatku premietania, miestom v sále (rad, číslo, typ), cenou a stavom lístka.
 Dotaz navyše používa oknové funkcie (\texttt{SUM \ldots OVER}, \texttt{COUNT \ldots OVER}) na kumulatívnu útratu podľa času predaja, celkovú útratu a počet lístkov v rámci výslednej množiny -- čo predstavuje analytický prvok nad transakčnými dátami.
 
-\textbf{SQL implementácia} je v súbore \texttt{queries.sql}; jej podstata je nasledujúca:
+\textbf{SQL implementácia} je v súbore \texttt{historia\_premietani.sql}; jej podstata je nasledujúca:
 
 \begin{lstlisting}[language=SQL, caption={História premietaní pre konkrétneho zákazníka (PostgreSQL)}]
     SELECT
@@ -818,6 +818,26 @@ Dotaz navyše používa oknové funkcie (\texttt{SUM \ldots OVER}, \texttt{COUNT
       AND l.stav_listka = 'platny'
     ORDER BY l.cas_predaja DESC;
 \end{lstlisting}
+
+\textbf{Ukážka spustenia nad seed dátami (id\_zakaznik = 42):}
+\begin{lstlisting}
+id_listok | film               | kino             | sala          | cas_zaciatku         | rad | cislo_miesta | typ_miesta | cena  | stav_listka | cas_predaja          | kumulativne_utraty | celkova_utrata | pocet_listkov_celkom
+----------|--------------------|------------------|---------------|----------------------|-----|--------------|------------|-------|-------------|----------------------|--------------------|----------------|----------------------
+6879      | The Godfather      | Kino Europa      | Komorna sala  | 2026-06-12 06:00:00  | A   | 1            | VIP        | 11.90 | platny      | 2026-06-09 07:00:00  | 53.10              | 53.10          | 5
+4305      | Shrek              | Cinemax Central  | Komorna sala  | 2026-05-16 11:00:00  | A   | 2            | VIP        | 9.90  | platny      | 2026-05-13 13:00:00  | 41.20              | 53.10          | 5
+2592      | Top Gun: Maverick  | Kino Hviezda     | Mala sala     | 2026-04-28 14:00:00  | A   | 5            | VIP        | 10.50 | platny      | 2026-04-25 19:00:00  | 31.30              | 53.10          | 5
+1735      | Oppenheimer        | Kino Mier        | VIP sala      | 2026-04-19 16:00:00  | A   | 3            | VIP        | 8.90  | platny      | 2026-04-16 19:00:00  | 20.80              | 53.10          | 5
+879       | The Godfather      | Kino Europa      | Komorna sala  | 2026-04-10 18:00:00  | A   | 1            | VIP        | 11.90 | platny      | 2026-04-07 19:00:00  | 11.90              | 53.10          | 5
+\end{lstlisting}
+
+\textbf{Zdôvodnenie korektnosti:}
+\begin{itemize}
+    \item Dotaz vracia iba lístky zákazníka \texttt{42} so stavom \texttt{platny}, čo je viditeľné na všetkých riadkoch vo výstupe.
+    \item Stĺpec \texttt{celkova\_utrata} je na každom riadku konštantný (\texttt{53.10}) a zodpovedá súčtu cien \texttt{11.90 + 9.90 + 10.50 + 8.90 + 11.90}.
+    \item Stĺpec \texttt{kumulativne\_utraty} rastie podľa predaja v čase (pri internom poradí \texttt{ORDER BY l.cas\_predaja}): \texttt{11.90 -> 20.80 -> 31.30 -> 41.20 -> 53.10}.
+    \item \texttt{pocet\_listkov\_celkom = 5} je konzistentný na každom riadku a zodpovedá veľkosti výslednej množiny.
+    \item Referenčná správnosť je daná \texttt{JOIN}mi cez FK: každý lístok sa prepája na existujúce premietanie, film, sálu, kino a miesto.
+\end{itemize}
 
 Meranie výkonu (\texttt{EXPLAIN ANALYZE}, \texttt{BUFFERS}) a odôvodnenie indexov je v samostatnej Sekcii~\ref{sec:vykonnost-indexy}.
 
@@ -931,7 +951,7 @@ Okrem primárneho kľúča a \texttt{UNIQUE (id\_premietanie, id\_miesto)} na \t
 
 \subsection{\texttt{EXPLAIN ANALYZE} pred a po indexovaní}
 
-Dotaz z procesu histórie premietaní (rovnaký ako v \texttt{queries.sql}, s konštantou \texttt{id\_zakaznik = 42} a filtrom na platné lístky) sme merali nad databázou po načítaní seed dát (\texttt{seed.sql}), s aktualizovanými štatistikami (\texttt{ANALYZE}).
+Dotaz z procesu histórie premietaní (rovnaký ako v \texttt{historia\_premietani.sql}, s konštantou \texttt{id\_zakaznik = 42} a filtrom na platné lístky) sme merali nad databázou po načítaní seed dát (\texttt{seed.sql}), s aktualizovanými štatistikami (\texttt{ANALYZE}).
 
 \textbf{Pred pridaním vlastných indexov} (ostali iba automatické štruktúry z PK a \texttt{UNIQUE} na \texttt{Listok}) PostgreSQL pri ukážkovom behu uviedol:
 \begin{itemize}
@@ -952,6 +972,21 @@ V tomto režime je typické, že sa tabuľka \texttt{Listok} číta sekvenčne a
 Zmysluplný zisk je predovšetkým v \emph{Execution Time}: presnejšie povedané, index umožňuje začať od úzkej množiny lístkov zákazníka namiesto filtrovania po celom objeme tabuľky.
 Pri výrazne väčších tabuľkách \texttt{Listok} by sa rozdiel medzi sekvenčnym čítaním a indexovým vstupom ešte zväčšil; pri súčasnom seede sú obe hodnoty submilisekundové, ale trend je jasný.
 Pri druhom procese je najdôležitejšia rýchla kontrola obsadenosti miesta. Tú pokrýva unikátne obmedzenie \texttt{UNIQUE (id\_premietanie, id\_miesto)} a doplnkový index \texttt{idx\_listok\_premietanie} pomáha pri dotazoch, ktoré pracujú so všetkými lístkami jedného premietania.
+
+\section{Zhodnotenie -- reflexia pracovného procesu}
+\label{sec:zhodnotenie}
+
+\textbf{Ktorá časť nás prekvapila.}
+Najviac nás prekvapila časť s indexami a plánom vykonávania. Aj pri relatívne rýchlych dopytoch (submilisekundy) bolo viditeľné, že vhodný kompozitný index mení spôsob prístupu k dátam a skracuje \texttt{Execution Time} takmer na polovicu.
+
+\textbf{Chyba v pôvodnom modeli a oprava.}
+Pri implementácii sa ukázalo, že voľný textový stĺpec pre stav lístka je náchylný na nekonzistentné hodnoty. Preto sme zaviedli \texttt{ENUM} typ \texttt{stav\_listka\_typ} s hodnotami \texttt{platny} a \texttt{vrateny}. Zároveň sme doplnili kontrolu času v dochádzke cez \texttt{CHECK (cas\_odchodu IS NULL OR cas\_odchodu >= cas\_prichodu)}.
+
+\textbf{Najťažšie biznis pravidlo v SQL.}
+Najťažšie bolo korektne vyjadriť pravidlo, že sedadlo musí patriť do rovnakej sály ako vybrané premietanie a zároveň nesmie byť na dané premietanie už obsadené. Riešili sme to kombináciou validačného \texttt{JOIN}u (\texttt{Miesto.id\_sala = Premietanie.id\_sala}), podmienky \texttt{NOT EXISTS} a databázového obmedzenia \texttt{UNIQUE (id\_premietanie, id\_miesto)}.
+
+\textbf{Použitie AI nástrojov.}
+AI nástroje sme použili najmä na návrh štruktúry dokumentácie a kontrolu konzistencie medzi modelom. Výstupy sme vždy manuálne skontrolovali, upravili na konkrétny model kina a overili spustením SQL nad seed dátami.
 
 % ─── Bibliografia (môže zostať prázdna) ───────────────────────────────────────
 \printbibliography
