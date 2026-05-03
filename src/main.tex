@@ -671,7 +671,7 @@ podľa zadania.
 \section{Zadanie 3}
 \label{sec:zadanie3}
 
-V rámci Zadania 3 dodávame spustiteľný DDL (\texttt{schema.sql}), reprodukovateľný seed (\texttt{seed.sql}), čisté SQL dotazy na procesy a doplňujúce indexy (\texttt{indexy.sql}) pre PostgreSQL.
+V rámci Zadania 3 dodávame spustiteľný DDL (\texttt{schema.sql}), ktorý obsahuje definície tabuliek, väzieb aj doplňujúce indexy na svojom konci, reprodukovateľný seed (\texttt{seed.sql}) a čisté SQL dotazy na jednotlivé procesy pre PostgreSQL.
 
 \subsection{Zmeny oproti Zadaniu 1}
 
@@ -788,7 +788,7 @@ Voliteľne možno sprísniť výber len na platné lístky (\texttt{stav\_listka
 \textbf{Výstup:} pre každý relevantný lístok riadok s filmom, kinom, označením sály, časom začiatku premietania, miestom v sále (rad, číslo, typ), cenou a stavom lístka.
 Dotaz navyše používa oknové funkcie (\texttt{SUM \ldots OVER}, \texttt{COUNT \ldots OVER}) na kumulatívnu útratu podľa času predaja, celkovú útratu a počet lístkov v rámci výslednej množiny -- čo predstavuje analytický prvok nad transakčnými dátami.
 
-\textbf{SQL implementácia} je v súbore \texttt{historia\_premietani.sql}; jej podstata je nasledujúca:
+\textbf{SQL implementácia} je v súbore \texttt{queries.sql}; jej podstata je nasledujúca:
 
 \begin{lstlisting}[language=SQL, caption={História premietaní pre konkrétneho zákazníka (PostgreSQL)}]
     SELECT
@@ -871,7 +871,7 @@ Meranie výkonu (\texttt{EXPLAIN ANALYZE}, \texttt{BUFFERS}) a odôvodnenie inde
 
 \textbf{Viazba na scenár:} proces nadväzuje na UC1 -- Nákup lístka. Rieši samotné vloženie lístka po tom, ako si zákazník vyberie premietanie a konkrétne miesto v sále.
 
-\textbf{Vstup:} identifikátor zákazníka, identifikátor premietania a identifikátor miesta. V ukážkovom skripte používame hodnoty \texttt{id\_zakaznik = 42}, \texttt{id\_premietanie = 1} a \texttt{id\_miesto = 80}. Hodnoty je možné nahradiť podľa dát v databáze.
+\textbf{Vstup:} identifikátor zákazníka, identifikátor premietania a identifikátor miesta. V ukážkovom skripte používame hodnoty \texttt{id\_zakaznik = 42}, \texttt{id\_premietanie = 1} a \texttt{id\_miesto = 40}. Hodnoty je možné nahradiť podľa dát v databáze.
 
 \textbf{Výstup:} ak sú vstupné údaje platné a miesto je voľné, vytvorí sa nový záznam v tabuľke \texttt{Listok}. Dotaz zároveň cez \texttt{RETURNING} vráti údaje o vytvorenom lístku. Ak niektorá kontrola neprejde, napríklad miesto nepatrí do sály daného premietania alebo je už obsadené, nevloží sa žiadny riadok.
 
@@ -882,7 +882,7 @@ WITH vstup AS (
     SELECT
         42::bigint AS id_zakaznik,
         1::bigint AS id_premietanie,
-        80::bigint AS id_miesto
+        40::bigint AS id_miesto
 ),
 validacia AS (
     SELECT
@@ -937,7 +937,7 @@ Pri voľnom mieste dotaz vloží nový lístok a vráti napríklad takýto výst
 \begin{lstlisting}
  id_listok | id_premietanie | id_zakaznik | id_miesto | cena | stav_listka
 -----------|----------------|-------------|-----------|------|-------------
- 7201      | 1              | 42          | 80        | 6.90 | platny
+ 7201      | 1              | 42          | 40        | 6.90 | platny
 \end{lstlisting}
 
 Pri opakovanom spustení s rovnakým \texttt{id\_premietanie} a \texttt{id\_miesto} sa ďalší lístok nevytvorí, pretože miesto je už pre dané premietanie obsadené.
@@ -957,7 +957,7 @@ Tento index je užitočný najmä pri zobrazovaní obsadených miest alebo zozna
 \section{Výkonnosť a indexy}
 \label{sec:vykonnost-indexy}
 
-\subsection{Zoznam doplnkových indexov (\texttt{indexy.sql})}
+\subsection{Zoznam doplnkových indexov (\texttt{schema.sql})}
 
 Pre dotaz na históriu lístkov konkrétneho zákazníka sú rozhodujúce podmienky \texttt{WHERE l.id\_zakaznik = \ldots} a filter podľa \texttt{stav\_listka}.
 Okrem primárneho kľúča a \texttt{UNIQUE (id\_premietanie, id\_miesto)} na \texttt{Listok} sme doplnili štyri btree indexy:
@@ -977,7 +977,7 @@ Okrem primárneho kľúča a \texttt{UNIQUE (id\_premietanie, id\_miesto)} na \t
 
 \subsection{\texttt{EXPLAIN ANALYZE} pred a po indexovaní}
 
-Dotaz z procesu histórie premietaní (rovnaký ako v \texttt{historia\_premietani.sql}, s konštantou \texttt{id\_zakaznik = 42} a filtrom na platné lístky) sme merali nad databázou po načítaní seed dát (\texttt{seed.sql}), s aktualizovanými štatistikami (\texttt{ANALYZE}).
+Dotaz z procesu histórie premietaní (rovnaký ako v \texttt{queries.sql}, s konštantou \texttt{id\_zakaznik = 42} a filtrom na platné lístky) sme merali nad databázou po načítaní seed dát (\texttt{seed.sql}), s aktualizovanými štatistikami (\texttt{ANALYZE}).
 
 \textbf{Pred pridaním vlastných indexov} (ostali iba automatické štruktúry z PK a \texttt{UNIQUE} na \texttt{Listok}) PostgreSQL pri ukážkovom behu uviedol:
 \begin{itemize}
@@ -987,12 +987,28 @@ Dotaz z procesu histórie premietaní (rovnaký ako v \texttt{historia\_premieta
 \end{itemize}
 V tomto režime je typické, že sa tabuľka \texttt{Listok} číta sekvenčne alebo široko cez základné štruktúry a až potom sa vyhodnocuje podmienka na zákazníka a stav -- čo pri väčšom počte riadkov škáluje horšie ako indexový vstup.
 
-\textbf{Po aplikovaní skriptu \texttt{indexy.sql}} (vrátane kompozitného \texttt{idx\_listok\_zakaznik\_stav}) ten istý dotaz pri porovnateľnom prostredí ukázal:
+\textbf{Po doplnení indexov v \texttt{schema.sql}} (vrátane kompozitného \texttt{idx\_listok\_zakaznik\_stav}) ten istý dotaz pri porovnateľnom prostredí ukázal:
 \begin{itemize}
     \item \texttt{Execution Time} približne \textbf{0{,}271\,ms} -- približne \textbf{polovičný} čas vykonania oproti stavu bez doplnkových indexov;
     \item \texttt{Planning Time} približne \textbf{2{,}087\,ms} -- mierne \emph{vyšší} než predtým, čo je pri mikrosekundových dotazoch bežné: optimalizátor preberá viac variantov (bitmap, index scan, kombinácie) a náklad na plánovanie už nie je zanedbateľný voči samotnému vykonaniu;
     \item \texttt{Buffers}: \texttt{shared hit=71}, \texttt{read=3} -- iný profil prístupov k stránkam (viac čítaní pri prechode indexom a vyhľadaní riadkov); počet bufferov priamo nesúvisí s tým, ktorý plán je rýchlejší.
 \end{itemize}
+
+Pri druhom procese sme merali validačnú časť nákupu lístka, teda kontrolu zákazníka, premietania, príslušnosti miesta k sále a obsadenosti miesta.
+\textbf{Pred doplnením vlastných indexov} PostgreSQL pri ukážkovom behu uviedol:
+\begin{itemize}
+    \item \texttt{Execution Time} približne \textbf{6{,}925\,ms};
+    \item \texttt{Planning Time} približne \textbf{1{,}356\,ms};
+    \item \texttt{Buffers}: \texttt{shared hit=20}, \texttt{dirtied=4}.
+\end{itemize}
+
+\textbf{Po doplnení indexov} bol výsledok:
+\begin{itemize}
+    \item \texttt{Execution Time} približne \textbf{0{,}729\,ms};
+    \item \texttt{Planning Time} približne \textbf{0{,}800\,ms};
+    \item \texttt{Buffers}: \texttt{shared hit=25}, \texttt{dirtied=8}.
+\end{itemize}
+Pri tomto procese sa zlepšenie prejavilo hlavne vo vykonávacom čase. Dotaz pracuje s konkrétnym premietaním a miestom, takže databáze pomáha najmä rýchle vyhľadanie lístkov naviazaných na dané premietanie a kontrola, či už rovnaké miesto nie je obsadené.
 
 \textbf{Zhrnutie.}
 Zmysluplný zisk je predovšetkým v \emph{Execution Time}: presnejšie povedané, index umožňuje začať od úzkej množiny lístkov zákazníka namiesto filtrovania po celom objeme tabuľky.

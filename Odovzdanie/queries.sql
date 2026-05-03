@@ -1,4 +1,3 @@
-EXPLAIN ANALYZE
 SELECT
     l.id_listok,
     f.nazov AS film,
@@ -43,7 +42,7 @@ WITH vstup AS (
     SELECT
         42::bigint AS id_zakaznik,
         1::bigint AS id_premietanie,
-        80::bigint AS id_miesto
+        40::bigint AS id_miesto
 ),
 validacia AS (
     SELECT
@@ -90,3 +89,10 @@ RETURNING
     cena,
     stav_listka,
     cas_predaja;
+
+-- Ukazka vysledku po spusteni nad seed datami:
+-- id_listok | id_premietanie | id_zakaznik | id_miesto | cena | stav_listka | cas_predaja
+-- 7201      | 1              | 42          | 40        | 6.90 | platny      | aktualny cas spustenia
+--
+-- Pri opakovanom spusteni s rovnakym id_premietanie = 1 a id_miesto = 40
+-- sa nevlozi dalsi riadok, pretoze miesto je uz obsadene.

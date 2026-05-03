@@ -96,14 +96,19 @@ create table Watchlist (
     unique (id_zakaznik, id_film)
 );
 
-create index idx_listok_zakaznik
-on Listok (id_zakaznik);
 
-create index idx_listok_stav
-on Listok (stav_listka);
+DROP INDEX IF EXISTS idx_listok_zakaznik;
+DROP INDEX IF EXISTS idx_listok_stav;
+DROP INDEX IF EXISTS idx_listok_zakaznik_stav;
+DROP INDEX IF EXISTS idx_listok_premietanie;
 
-create index idx_listok_zakaznik_stav
-on Listok (id_zakaznik, stav_listka);
+CREATE INDEX idx_listok_zakaznik ON Listok (id_zakaznik);
 
-create index idx_listok_premietanie
-on Listok (id_premietanie);
+-- filtrovanie/agregacia podla stavu listka (platny / vrateny)
+CREATE INDEX idx_listok_stav ON Listok (stav_listka);
+
+-- pokryva dotazy na historiu listkov konkretneho zakaznika + stav
+CREATE INDEX idx_listok_zakaznik_stav ON Listok (id_zakaznik, stav_listka);
+
+CREATE INDEX idx_listok_premietanie
+ON Listok (id_premietanie);

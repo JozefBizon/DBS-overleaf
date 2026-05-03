@@ -1,9 +1,12 @@
-# Reprodukcia seed dat
+# Seed data
 
-Postup pre PostgreSQL:
+Seed je pripraveny ako cisty SQL skript pre PostgreSQL. Nepouzivali sme externy generator, preto sa cele naplnenie databazy da zopakovat rovnakym sposobom na kazdom stroji.
 
-1. Spustit `schema.sql` na cistej databaze.
-2. Spustit `seed/seed.sql`.
-3. Volitelne spustit `queries.sql` pre ukazku oboch procesov.
+Postup:
 
-Seed je deterministicky a pouziva iba SQL konstrukcie PostgreSQL (`generate_series`, `ARRAY`, `JOIN LATERAL`, `TRUNCATE ... RESTART IDENTITY CASCADE`). Pri opakovanom spusteni po `schema.sql` vzniknu rovnake pocty zaznamov.
+1. V cistej databaze spustit `schema.sql`.
+2. Potom spustit `seed/seed.sql`.
+3. Na overenie procesov spustit `queries.sql`.
+
+Skript najprv vycisti tabulky cez `TRUNCATE ... RESTART IDENTITY CASCADE` a potom vlozi data v poradi, ktore respektuje cudzie kluce. Na generovanie vacsieho poctu riadkov pouziva `generate_series`, pevne zoznamy hodnot, deterministicke modulo pravidla a pri listkoch vyber sedadiel cez `JOIN LATERAL`.
+

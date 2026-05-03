@@ -43,7 +43,7 @@ WITH vstup AS (
     SELECT
         42::bigint AS id_zakaznik,
         1::bigint AS id_premietanie,
-        80::bigint AS id_miesto
+        40::bigint AS id_miesto
 ),
 validacia AS (
     SELECT
@@ -90,3 +90,13 @@ RETURNING
     cena,
     stav_listka,
     cas_predaja;
+
+--pre index
+-- "  Buffers: shared hit=20 dirtied=4"
+-- "Planning Time: 1.356 ms"
+-- "Execution Time: 6.925 ms"
+
+--post index
+-- "  Buffers: shared hit=25 dirtied=8"
+-- "Planning Time: 0.800 ms"
+-- "Execution Time: 0.729 ms"
