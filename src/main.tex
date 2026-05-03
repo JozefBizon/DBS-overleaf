@@ -41,7 +41,7 @@
 % ─── Student details ─────────────────────────────────────────────────────────
 \newcommand{\StudentName}{Bizoň Jozef, Moško Marek}
 \newcommand{\StudyGroup}{Rucek - Streda 8:00}
-\newcommand{\AssignmentNumber}{1}
+\newcommand{\AssignmentNumber}{3}
 \newcommand{\AssignmentTitle}{Kino}
 \newcommand{\AcademicYear}{2025/2026}
 
@@ -788,7 +788,7 @@ Voliteľne možno sprísniť výber len na platné lístky (\texttt{stav\_listka
 \textbf{Výstup:} pre každý relevantný lístok riadok s filmom, kinom, označením sály, časom začiatku premietania, miestom v sále (rad, číslo, typ), cenou a stavom lístka.
 Dotaz navyše používa oknové funkcie (\texttt{SUM \ldots OVER}, \texttt{COUNT \ldots OVER}) na kumulatívnu útratu podľa času predaja, celkovú útratu a počet lístkov v rámci výslednej množiny -- čo predstavuje analytický prvok nad transakčnými dátami.
 
-\textbf{SQL implementácia} je v súbore \texttt{historia\_premietani.sql}; jej podstata je nasledujúca:
+\textbf{SQL implementácia} je v súbore \texttt{queries.sql}; jej podstata je nasledujúca:
 
 \begin{lstlisting}[language=SQL, caption={História premietaní pre konkrétneho zákazníka (PostgreSQL)}]
     SELECT
@@ -821,10 +821,92 @@ Dotaz navyše používa oknové funkcie (\texttt{SUM \ldots OVER}, \texttt{COUNT
 
 Meranie výkonu (\texttt{EXPLAIN ANALYZE}, \texttt{BUFFERS}) a odôvodnenie indexov je v samostatnej Sekcii~\ref{sec:vykonnost-indexy}.
 
-\subsection{Druhý proces}
+\subsection{Proces 2 -- Zakúpenie lístka s kontrolou dostupnosti miesta}
 
-Druhý z dvoch procesov podľa zadania zatiaľ nie je v dokumentácii rozpracovaný; doplníme ho dodatočne spolu s vlastným dotazom a prípadnými ďalšími indexmi.
+\textbf{Viazba na scenár:} proces nadväzuje na UC1 -- Nákup lístka. Rieši samotné vloženie lístka po tom, ako si zákazník vyberie premietanie a konkrétne miesto v sále.
 
+\textbf{Vstup:} identifikátor zákazníka, identifikátor premietania a identifikátor miesta. V ukážkovom skripte používame hodnoty \texttt{id\_zakaznik = 42}, \texttt{id\_premietanie = 1} a \texttt{id\_miesto = 80}. Hodnoty je možné nahradiť podľa dát v databáze.
+
+\textbf{Výstup:} ak sú vstupné údaje platné a miesto je voľné, vytvorí sa nový záznam v tabuľke \texttt{Listok}. Dotaz zároveň cez \texttt{RETURNING} vráti údaje o vytvorenom lístku. Ak niektorá kontrola neprejde, napríklad miesto nepatrí do sály daného premietania alebo je už obsadené, nevloží sa žiadny riadok.
+
+\textbf{SQL implementácia:}
+
+\begin{lstlisting}[language=SQL, caption={Zakúpenie lístka s kontrolou dostupnosti miesta}]
+WITH vstup AS (
+    SELECT
+        42::bigint AS id_zakaznik,
+        1::bigint AS id_premietanie,
+        80::bigint AS id_miesto
+),
+validacia AS (
+    SELECT
+        v.id_zakaznik,
+        v.id_premietanie,
+        v.id_miesto,
+        p.cena_zakladna
+    FROM vstup v
+    JOIN Zakaznik z
+        ON z.id_zakaznik = v.id_zakaznik
+    JOIN Premietanie p
+        ON p.id_premietanie = v.id_premietanie
+    JOIN Miesto m
+        ON m.id_miesto = v.id_miesto
+       AND m.id_sala = p.id_sala
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM Listok l
+        WHERE l.id_premietanie = v.id_premietanie
+          AND l.id_miesto = v.id_miesto
+    )
+)
+INSERT INTO Listok (
+    id_premietanie,
+    id_zakaznik,
+    id_miesto,
+    cena,
+    stav_listka,
+    cas_predaja
+)
+SELECT
+    id_premietanie,
+    id_zakaznik,
+    id_miesto,
+    cena_zakladna,
+    'platny',
+    CURRENT_TIMESTAMP
+FROM validacia
+RETURNING
+    id_listok,
+    id_premietanie,
+    id_zakaznik,
+    id_miesto,
+    cena,
+    stav_listka,
+    cas_predaja;
+\end{lstlisting}
+
+\textbf{Správanie procesu:}
+Pri voľnom mieste dotaz vloží nový lístok a vráti napríklad takýto výstup:
+
+\begin{lstlisting}
+ id_listok | id_premietanie | id_zakaznik | id_miesto | cena | stav_listka
+-----------|----------------|-------------|-----------|------|-------------
+ 7201      | 1              | 42          | 80        | 6.90 | platny
+\end{lstlisting}
+
+Pri opakovanom spustení s rovnakým \texttt{id\_premietanie} a \texttt{id\_miesto} sa ďalší lístok nevytvorí, pretože miesto je už pre dané premietanie obsadené.
+
+\textbf{Kontrola v databáze:}
+CTE časť \texttt{validacia} overuje existenciu zákazníka, premietania a vybraného miesta. Spojenie na tabuľku \texttt{Miesto} zároveň kontroluje, že sedadlo patrí do tej istej sály ako premietanie. Podmienka \texttt{NOT EXISTS} zabraňuje vloženiu lístka na už obsadené miesto.
+
+Rovnaké pravidlo je chránené aj priamo v schéme cez \texttt{UNIQUE (id\_premietanie, id\_miesto)} v tabuľke \texttt{Listok}. Okrem toho dopĺňame index pre dotazy nad lístkami jedného premietania:
+
+\begin{lstlisting}[language=SQL]
+CREATE INDEX idx_listok_premietanie
+ON Listok (id_premietanie);
+\end{lstlisting}
+
+Tento index je užitočný najmä pri zobrazovaní obsadených miest alebo zoznamu predaných lístkov pre konkrétne premietanie.
 
 \section{Výkonnosť a indexy}
 \label{sec:vykonnost-indexy}
@@ -832,7 +914,7 @@ Druhý z dvoch procesov podľa zadania zatiaľ nie je v dokumentácii rozpracova
 \subsection{Zoznam doplnkových indexov (\texttt{indexy.sql})}
 
 Pre dotaz na históriu lístkov konkrétneho zákazníka sú rozhodujúce podmienky \texttt{WHERE l.id\_zakaznik = \ldots} a filter podľa \texttt{stav\_listka}.
-Okrem primárneho kľúča a \texttt{UNIQUE (id\_premietanie, id\_miesto)} na \texttt{Listok} sme doplnili tri btree indexy:
+Okrem primárneho kľúča a \texttt{UNIQUE (id\_premietanie, id\_miesto)} na \texttt{Listok} sme doplnili štyri btree indexy:
 
 \begin{description}
     \item[\texttt{idx\_listok\_zakaznik (id\_zakaznik)}]
@@ -843,11 +925,13 @@ Okrem primárneho kľúča a \texttt{UNIQUE (id\_premietanie, id\_miesto)} na \t
 
     \item[\texttt{idx\_listok\_zakaznik\_stav (id\_zakaznik, stav\_listka)}]
         Kombinuje obe kritériá v poradí zhodnom s filtrom v histórii profilu -- plánovač má jednu kompaktnú štruktúru na zuženie množiny riadkov pred \texttt{JOIN}mi na \texttt{Premietanie}, \texttt{Film}, \texttt{Kinosala}, \texttt{Kino} a \texttt{Miesto}.
-\end{description}
+    \item[\texttt{idx\_listok\_premietanie (id\_premietanie)}]
+        Podporuje druhý proces -- nákup lístka a kontrolu obsadenosti premietania. Pomáha pri dotazoch, ktoré pracujú so všetkými lístkami jedného premietania, napríklad pri zobrazovaní obsadených miest v sále alebo pri kontrole predaných lístkov.
+    \end{description}
 
 \subsection{\texttt{EXPLAIN ANALYZE} pred a po indexovaní}
 
-Dotaz z procesu histórie premietaní (rovnaký ako v \texttt{historia\_premietani.sql}, s konštantou \texttt{id\_zakaznik = 42} a filtrom na platné lístky) sme merali nad databázou po načítaní seed dát (\texttt{seed.sql}), s aktualizovanými štatistikami (\texttt{ANALYZE}).
+Dotaz z procesu histórie premietaní (rovnaký ako v \texttt{queries.sql}, s konštantou \texttt{id\_zakaznik = 42} a filtrom na platné lístky) sme merali nad databázou po načítaní seed dát (\texttt{seed.sql}), s aktualizovanými štatistikami (\texttt{ANALYZE}).
 
 \textbf{Pred pridaním vlastných indexov} (ostali iba automatické štruktúry z PK a \texttt{UNIQUE} na \texttt{Listok}) PostgreSQL pri ukážkovom behu uviedol:
 \begin{itemize}
@@ -867,7 +951,7 @@ V tomto režime je typické, že sa tabuľka \texttt{Listok} číta sekvenčne a
 \textbf{Zhrnutie.}
 Zmysluplný zisk je predovšetkým v \emph{Execution Time}: presnejšie povedané, index umožňuje začať od úzkej množiny lístkov zákazníka namiesto filtrovania po celom objeme tabuľky.
 Pri výrazne väčších tabuľkách \texttt{Listok} by sa rozdiel medzi sekvenčnym čítaním a indexovým vstupom ešte zväčšil; pri súčasnom seede sú obe hodnoty submilisekundové, ale trend je jasný.
-Druhý proces zo zadania po jeho doplnení bude mať vlastné indexové odôvodnenie; ak niektorý dotaz ostane nákladný aj s indexmi (napr.\ kvôli striktnému \texttt{ORDER BY} nad veľkým medzivýsledkom alebo nákladným oknovým funkciám), pôjde typicky o časť plánu, ktorú samotný btree na \texttt{Listok} neodstráni.
+Pri druhom procese je najdôležitejšia rýchla kontrola obsadenosti miesta. Tú pokrýva unikátne obmedzenie \texttt{UNIQUE (id\_premietanie, id\_miesto)} a doplnkový index \texttt{idx\_listok\_premietanie} pomáha pri dotazoch, ktoré pracujú so všetkými lístkami jedného premietania.
 
 % ─── Bibliografia (môže zostať prázdna) ───────────────────────────────────────
 \printbibliography
