@@ -641,17 +641,138 @@ sledovaný viacerými zákazníkmi. Tento vzťah je realizovaný pomocou tabuľk
 Typ vzťahu: 1:N. Jeden zamestnanec môže mať viacero záznamov dochádzky. Pri vymazaní
 zamestnanca sa jeho záznamy dochádzky odstránia pomocou pravidla \texttt{ON DELETE CASCADE}.
 
+\section{Reflexia}
+\label{sec:reflexia}
+
+Pri návrhu databázového modelu sme postupovali postupne a viackrát sme ho upravovali podľa toho,
+ako sme si spresňovali fungovanie celého systému. Na začiatku sme mali navrhnuté len základné
+entity, ako napríklad \texttt{Film}, \texttt{Premietanie}, \texttt{Kinosala} a \texttt{Zakaznik}.
+Neskôr sme dopĺňali ďalšie tabuľky, vzťahy medzi nimi a potrebné obmedzenia.
+
+Najviac času nám zabrala časť okolo tabuliek \texttt{Film}, \texttt{Premietanie} a \texttt{Listok},
+pretože bolo potrebné správne vyriešiť, ako evidovať konkrétne premietania filmu a zároveň aj
+predaj miest na tieto premietania. Dôležité bolo najmä to, aby bolo možné priradiť lístok ku
+konkrétnemu premietaniu a zároveň ku konkrétnemu miestu v sále.
+
+Tému kina sme si vybrali preto, že je ľahko predstaviteľná a dobre sa na nej ukazujú vzťahy medzi
+jednotlivými tabuľkami. Zároveň nám táto téma prišla dostatočne praktická na to, aby sme na nej
+vedeli navrhnúť viacero zaujímavých scenárov a rôzne typy väzieb, napríklad vzťah 1:N medzi
+filmom a premietaním alebo M:N medzi zákazníkom a filmom cez tabuľku \texttt{Watchlist}.
+
+Pri kontrole dokumentu a overovaní, či si jednotlivé časti navzájom neodporujú, sme čiastočne
+využili aj AI nástroje. Pomohli nám hlavne pri kontrole konzistencie medzi textovou časťou,
+scenármi a databázovým modelom. Výstupy sme si však následne prešli, upravili a prispôsobili
+podľa zadania.
+
 \section{Zadanie 3}
 \label{sec:zadanie3}
 
-V rámci Zadania 3 implementujeme vybrané používateľské scenáre čistým SQL v PostgreSQL a podporujeme ich indexmi.
-Nižšie uvádzame prvý z dvoch plánovaných procesov (druhý doplníme neskôr) a súhrn indexov zo súboru \texttt{indexy.sql}.
+V rámci Zadania 3 dodávame spustiteľný DDL (\texttt{schema.sql}), reprodukovateľný seed (\texttt{seed.sql}), čisté SQL dotazy na procesy a doplňujúce indexy (\texttt{indexy.sql}) pre PostgreSQL.
 
-\subsection{Zmena oproti UC6 v Zadaní 1}
+\subsection{Zmeny oproti Zadaniu 1}
 
+\textbf{Use case UC6.}
 Use case \textbf{UC6 -- Zobrazenie histórie premietaní} bol v špecifikácii popísaný ako všeobecný výpis premietaní spojených s filmami (\texttt{JOIN} \texttt{Premietanie} -- \texttt{Film}) bez väzby na konkrétneho používateľa.
-Pre potreby Zadania 3 sme proces upravili tak, aby zodpovedal realite profilu zákazníka: história sa zobrazuje \textbf{iba pre prihláseného zákazníka} a vychádza z jeho zakúpených lístkov (\texttt{Listok}), nie len zo zoznamu všetkých premietaní.
-Zákazník tak vidí filmy (premietania), ktoré skutočne navštívil alebo si na ne zakúpil lístok (podľa filtrovania podľa stavu lístka).
+Pre implementáciu sme proces upravili tak, aby zodpovedal profilu zákazníka: história sa zobrazuje \textbf{iba pre prihláseného zákazníka} a vychádza z jeho lístkov (\texttt{Listok}), nie zo zoznamu všetkých premietaní.
+
+\textbf{Fyzický model oproti textu Zadania 1.}
+Pri zápise do PostgreSQL sme zjednotili detail oproti koncepčnému popisu v staršej časti dokumentu:
+\begin{itemize}
+    \item stav lístka je typ \texttt{stav\_listka\_typ} (\texttt{ENUM}: \texttt{'platny'}, \texttt{'vrateny'}) namiesto voľného reťazca -- žiadne neočakávané hodnoty v DB,
+    \item identifikátory sú typu \texttt{bigint} s \texttt{GENERATED ALWAYS AS IDENTITY},
+    \item atribút \texttt{rad} v \texttt{Miesto} je \texttt{varchar(10)} (napr.\ písmenové označenie radu generované vo \texttt{seed.sql}),
+    \item meno a priezvisko zákazníka sú vo schéme voliteľné (\texttt{Zakaznik}); povinný je jedine \texttt{email},
+    \item nad \texttt{Dochadzka} pribudlo \texttt{CHECK (cas\_odchodu IS NULL OR cas\_odchodu >= cas\_prichodu)} ako priame biznis obmedzenie času.
+\end{itemize}
+Aktualizovaný diagram fyzického modelu je súčasťou odovzdávaného archívu (napr.\ obrázok ER/diagram DB).
+
+\subsection{Fyzický model -- implementácia}
+
+Kompletný DDL pre PostgreSQL je v súbore \texttt{schema.sql}: najprv odstránenie závislostí (\texttt{DROP TABLE \ldots CASCADE}), potom typ \texttt{stav\_listka\_typ} a tabuľky v poradí vyhovujúcom cudzím kľúčom.
+
+\subsubsection*{Zoznam tabuliek}
+\begin{tabular}{@{}p{0.28\textwidth}p{0.66\textwidth}@{}}
+    \toprule
+    Tabuľka & Krátky účel \\
+    \midrule
+    \texttt{Kino} & Sieť alebo jednotlivé kino ako organizácia. \\
+    \texttt{Kinosala} & Sála patriaca kinu s kapacitou a označením. \\
+    \texttt{Miesto} & Konkrétne sedadlo v sále (rad, číslo, typ). \\
+    \texttt{Film} & Katalóg titulov (dĺžka, žáner, dátum premiéry). \\
+    \texttt{Premietanie} & Jedna projekcia filmu v čase a v konkrétnej sále s cenou. \\
+    \texttt{Zakaznik} & Registrovaný zákazník (jedinečný e-mail). \\
+    \texttt{Listok} & Väzba zákazník\,--\,premietanie\,--\,miesto s cenou a stavom. \\
+    \texttt{Watchlist} & M:N výber filmov sledovaných zákazníkom. \\
+    \texttt{Zamestnanec} & Zamestnanec priradený ku kinu. \\
+    \texttt{Dochadzka} & Príchod a odchod zamestnanca + poznámka. \\
+    \bottomrule
+\end{tabular}
+
+\subsubsection*{Integritné obmedzenia s biznis významom}
+\begin{itemize}
+    \item \texttt{UNIQUE (id\_premietanie, id\_miesto)} na \texttt{Listok} -- na jednom premietaní nemôže byť rovnaké miesto predané dvakrát (kapacita sedenia nie je konfliktná na úrovni jednej projekcie).
+    \item \texttt{UNIQUE (id\_sala, rad, cislo\_miesta)} na \texttt{Miesto} -- v jednej sáli nie sú duplicitné sedadlá.
+    \item \texttt{UNIQUE (id\_zakaznik, id\_film)} na \texttt{Watchlist} -- ten istý film nemôže byť vo watchliste dvakrát.
+    \item \texttt{CHECK} na kladné hodnoty: kapacita sály, základná cena premietania, cena lístka, prípadne dĺžka filmu v minútach.
+    \item \texttt{ENUM} pre \texttt{stav\_listka} -- konzistentná doména stavov bez ľubovoľných neočakávaných textových hodnôt.
+\end{itemize}
+
+\subsubsection*{Stratégie \texttt{ON DELETE}}
+\begin{itemize}
+    \item \textbf{RESTRICT} z \texttt{Kino} na \texttt{Kinosala} a \texttt{Zamestnanec}, z \texttt{Kinosala} na \texttt{Miesto} a \texttt{Premietanie}, z \texttt{Film} na \texttt{Premietanie} a \texttt{Watchlist}, z \texttt{Zakaznik} na \texttt{Listok}, z \texttt{Miesto} na \texttt{Listok} -- neumožní zmazať entitu, pod ktorú sú naviazané platné prevádzkové záznamy (predíde rozpadu integrity).
+    \item \textbf{CASCADE} z \texttt{Premietanie} na \texttt{Listok} -- pri odstránení premietania zmiznú aj všetky naviazané lístky (zjednodušenie údržby pri zrušení projekcie).
+    \item \textbf{CASCADE} z \texttt{Zakaznik} na \texttt{Watchlist} -- pri zmazaní účtu zákazníka sa vyčistí aj jeho sledovaný zoznam.
+    \item \textbf{CASCADE} z \texttt{Zamestnanec} na \texttt{Dochadzka} -- odstránenie zamestnanca zruší jeho históriu príchodov a odchodov v zmysle evidencie v tejto tabuľke.
+\end{itemize}
+
+\subsection{Seed dáta}
+
+\subsubsection*{Postup a nástroje}
+Seed je realizovaný výhradne \textbf{SQL skriptom} \texttt{seed.sql} pre PostgreSQL (bez externého Faker/Mimesis): kombinácia \texttt{TRUNCATE \ldots RESTART IDENTITY CASCADE}, statických \texttt{INSERT}, generátorov \texttt{generate\_series}, výberov cez \texttt{ARRAY} a pri \texttt{Listok} výber miest cez \texttt{JOIN LATERAL}.
+Skript je reprodukovateľný -- pri opakovanom spustení po DDL dostaneme rovnakú štruktúru objemov (deterministické vzorce).
+
+\subsubsection*{Počty záznamov po seede}
+Spolu je v databáze po naplnení \textbf{14\,235} riadkov v hlavných tabuľkách (splnený požiadavok na rozsah nad 10\,000 pri zmysluplnom rozdelení).
+
+\begin{tabular}{lr}
+    \toprule
+    Tabuľka & Počet záznamov \\
+    \midrule
+    \texttt{Kino} & 5 \\
+    \texttt{Kinosala} & 20 \\
+    \texttt{Miesto} & 1\,600 \\
+    \texttt{Film} & 30 \\
+    \texttt{Zakaznik} & 1\,500 \\
+    \texttt{Zamestnanec} & 80 \\
+    \texttt{Premietanie} & 1\,800 \\
+    \texttt{Listok} & 7\,200 \\
+    \texttt{Watchlist} & 1\,200 \\
+    \texttt{Dochadzka} & 800 \\
+    \midrule
+    Spolu & 14\,235 \\
+    \bottomrule
+\end{tabular}
+
+Počet riadkov v \texttt{Listok} vzniká tak, že na každé premietanie sa vygeneruje \texttt{2 + (id\_premietanie \% 5)} lístkov (v cykle hodnoty 3, 4, 5, 6, 2), čo dá súčet $360 \cdot (3{+}4{+}5{+}6{+}2) = 7\,200$.
+
+\subsubsection*{Distribúcia}
+\begin{itemize}
+    \item \textbf{Referenčné / pomalorastúce entity} (\texttt{Kino}, \texttt{Film}) sú malé -- zodpovedajú tomu, že prevádzkových titulov a pobočiek je úmerne málo oproti transakciám.
+    \item \textbf{Prevádzkový jadro} (\texttt{Premietanie}, \texttt{Listok}) má najväčší objem -- väčšina aktivít systému sú projekcie a predaje; počet lístkov prevyšuje počet projekcií.
+    \item \textbf{Zákazníci} (1\,500) majú nerovnomerný počet výskytov v \texttt{Listok} kvôli modulo priradeniu k premietaniu -- časť používateľov má viac nákupov, časť menej, čo pripomína používateľov s rozdielnou intenzitou nákupov bez externého generátora náhodných čísel.
+    \item \textbf{Vrátené lístky} cielené vzorcom každý 25.\ výskyt (\texttt{(p.id\_premietanie + s.rn) \% 25 = 0} vo \texttt{seed.sql}) -- malý podiel vrátených voči platným.
+    \item \textbf{Watchlist} je redší výber z kartézskeho súčinu zákazník\,×\,film podľa deterministickej podmienky, orezaný na 1\,200 záznamov -- väčšina párov nie je vo watchliste.
+\end{itemize}
+
+\subsubsection*{Konzistencia}
+\begin{itemize}
+    \item Poradie vkladania rešpektuje FK: najprv \texttt{Kino}, \texttt{Kinosala}, \texttt{Miesto}, \texttt{Film}, potom závislé entity.
+    \item \texttt{Listok} vyberá \texttt{id\_miesto} len z miest patriacich tej istej \texttt{id\_sala} ako dané premietanie (\texttt{WHERE mi.id\_sala = p.id\_sala}) -- sedadlo patri na správnu sálu.
+    \item \texttt{cas\_predaja} je nastavený pred začiatkom premietania (\texttt{p.cas\_zaciatku - interval '3 days' + \ldots}), čo zodpovedá predaju vopred.
+    \item Schéma dopĺňa biznis pravidlá (\texttt{UNIQUE} sedadlo na premietaní, \texttt{CHECK} časy dochádzky, \texttt{ENUM} stav lístka); seed do týchto obmedzení nenaráža.
+\end{itemize}
+
+Na záver skript volá \texttt{ANALYZE}, aby optimalizátor mal aktuálne štatistiky pre dotazy a \texttt{EXPLAIN}.
 
 \subsection{Proces 1 -- História premietaní z pohľadu zákazníka}
 
@@ -694,56 +815,55 @@ WHERE l.id_zakaznik = 42
 ORDER BY l.cas_predaja DESC;
 \end{lstlisting}
 
-\textbf{Meranie plánu:} v skripte sú poznámky z behu \texttt{EXPLAIN ANALYZE} pred a po pridaní indexov (orientačné časy plánovania a vykonania, počty bufferov).
-Po nasadení kompozitného indexu na \texttt{(id\_zakaznik, stav\_listka)} klesol v našom meraní čas vykonania približne z $\sim$0{,}59\,ms na $\sim$0{,}27\,ms pri danom objeme dát.
+Meranie výkonu (\texttt{EXPLAIN ANALYZE}, \texttt{BUFFERS}) a odôvodnenie indexov je v samostatnej Sekcii~\ref{sec:vykonnost-indexy}.
 
 \subsection{Druhý proces}
 
 Druhý z dvoch procesov podľa zadania zatiaľ nie je v dokumentácii rozpracovaný; doplníme ho dodatočne spolu s vlastným dotazom a prípadnými ďalšími indexmi.
 
-\subsection{Indexy (\texttt{indexy.sql})}
 
-Pre dotaz na históriu lístkov zákazníka sú kľúčové podmienky \texttt{WHERE l.id\_zakaznik = \ldots} a filter podľa \texttt{stav\_listka}.
-Definovali sme tieto indexy nad tabuľkou \texttt{Listok}:
+\section{Výkonnosť a indexy}
+\label{sec:vykonnost-indexy}
+
+\subsection{Zoznam doplnkových indexov (\texttt{indexy.sql})}
+
+Pre dotaz na históriu lístkov konkrétneho zákazníka sú rozhodujúce podmienky \texttt{WHERE l.id\_zakaznik = \ldots} a filter podľa \texttt{stav\_listka}.
+Okrem primárneho kľúča a \texttt{UNIQUE (id\_premietanie, id\_miesto)} na \texttt{Listok} sme doplnili tri btree indexy:
 
 \begin{description}
     \item[\texttt{idx\_listok\_zakaznik (id\_zakaznik)}]
-        Podporuje vyhľadanie všetkých lístkov daného zákazníka bez nutnosti sekvenčného prechodu celej tabuľky \texttt{Listok}.
-        Vyhýba sa nákladnému \emph{Seq Scan} pri výbere riadkov podľa zákazníka.
+        Umožňuje rýchlo nájsť všetky lístky daného zákazníka namiesto sekvenčného prečítania celej tabuľky \texttt{Listok}.
 
     \item[\texttt{idx\_listok\_stav (stav\_listka)}]
-        Pomáha dotazom, ktoré filtrujú alebo agregujú podľa stavu lístka (\texttt{platny}, \texttt{vratený} a pod.).
-        Môže byť užitočný aj v iných reportoch nad \texttt{Listok}.
+        Podporuje výbery a agregácie podľa stavu lístka (\texttt{platny}, \texttt{vratený}); môže pomôcť aj iným reportom nad \texttt{Listok}.
 
     \item[\texttt{idx\_listok\_zakaznik\_stav (id\_zakaznik, stav\_listka)}]
-        Kombinuje obe kritériá v jednom indexe v poradí zodpovedajúcom najčastejšiemu filtrovaniu v histórii profilu zákazníka.
-        Plánovač môže efektívne zužovať množinu riadkov naraz podľa zákazníka aj stavu, čo znižuje počet čítaných blokov pred spojením s \texttt{Premietanie}, \texttt{Film}, \texttt{Kinosala}, \texttt{Kino} a \texttt{Miesto}.
+        Kombinuje obe kritériá v poradí zhodnom s filtrom v histórii profilu -- plánovač má jednu kompaktnú štruktúru na zuženie množiny riadkov pred \texttt{JOIN}mi na \texttt{Premietanie}, \texttt{Film}, \texttt{Kinosala}, \texttt{Kino} a \texttt{Miesto}.
 \end{description}
 
-Primárne a jedinečné kľúče (\texttt{id\_listok}, \texttt{UNIQUE (id\_premietanie, id\_miesto)}) už kryjú niektoré spojenia; uvedené indexy sú \emph{doplnkové} a zamerané konkrétne na proces histórie podľa zákazníka.
+\subsection{\texttt{EXPLAIN ANALYZE} pred a po indexovaní}
 
-\section{Reflexia}
-\label{sec:reflexia}
+Dotaz z procesu histórie premietaní (rovnaký ako v \texttt{historia\_premietani.sql}, s konštantou \texttt{id\_zakaznik = 42} a filtrom na platné lístky) sme merali nad databázou po načítaní seed dát (\texttt{seed.sql}), s aktualizovanými štatistikami (\texttt{ANALYZE}).
 
-Pri návrhu databázového modelu sme postupovali postupne a viackrát sme ho upravovali podľa toho,
-ako sme si spresňovali fungovanie celého systému. Na začiatku sme mali navrhnuté len základné
-entity, ako napríklad \texttt{Film}, \texttt{Premietanie}, \texttt{Kinosala} a \texttt{Zakaznik}.
-Neskôr sme dopĺňali ďalšie tabuľky, vzťahy medzi nimi a potrebné obmedzenia.
+\textbf{Pred pridaním vlastných indexov} (ostali iba automatické štruktúry z PK a \texttt{UNIQUE} na \texttt{Listok}) PostgreSQL pri ukážkovom behu uviedol:
+\begin{itemize}
+    \item čas \emph{vykonania} (\texttt{Execution Time}) približne \textbf{0{,}591\,ms};
+    \item čas \emph{plánovania} (\texttt{Planning Time}) približne \textbf{1{,}032\,ms};
+    \item \texttt{Buffers}: \texttt{shared hit=36}, \texttt{dirtied=1}.
+\end{itemize}
+V tomto režime je typické, že sa tabuľka \texttt{Listok} číta sekvenčne alebo široko cez základné štruktúry a až potom sa vyhodnocuje podmienka na zákazníka a stav -- čo pri väčšom počte riadkov škáluje horšie ako indexový vstup.
 
-Najviac času nám zabrala časť okolo tabuliek \texttt{Film}, \texttt{Premietanie} a \texttt{Listok},
-pretože bolo potrebné správne vyriešiť, ako evidovať konkrétne premietania filmu a zároveň aj
-predaj miest na tieto premietania. Dôležité bolo najmä to, aby bolo možné priradiť lístok ku
-konkrétnemu premietaniu a zároveň ku konkrétnemu miestu v sále.
+\textbf{Po aplikovaní skriptu \texttt{indexy.sql}} (vrátane kompozitného \texttt{idx\_listok\_zakaznik\_stav}) ten istý dotaz pri porovnateľnom prostredí ukázal:
+\begin{itemize}
+    \item \texttt{Execution Time} približne \textbf{0{,}271\,ms} -- približne \textbf{polovičný} čas vykonania oproti stavu bez doplnkových indexov;
+    \item \texttt{Planning Time} približne \textbf{2{,}087\,ms} -- mierne \emph{vyšší} než predtým, čo je pri mikrosekundových dotazoch bežné: optimalizátor preberá viac variantov (bitmap, index scan, kombinácie) a náklad na plánovanie už nie je zanedbateľný voči samotnému vykonaniu;
+    \item \texttt{Buffers}: \texttt{shared hit=71}, \texttt{read=3} -- iný profil prístupov k stránkam (viac čítaní pri prechode indexom a vyhľadaní riadkov); počet bufferov priamo nesúvisí s tým, ktorý plán je rýchlejší.
+\end{itemize}
 
-Tému kina sme si vybrali preto, že je ľahko predstaviteľná a dobre sa na nej ukazujú vzťahy medzi
-jednotlivými tabuľkami. Zároveň nám táto téma prišla dostatočne praktická na to, aby sme na nej
-vedeli navrhnúť viacero zaujímavých scenárov a rôzne typy väzieb, napríklad vzťah 1:N medzi
-filmom a premietaním alebo M:N medzi zákazníkom a filmom cez tabuľku \texttt{Watchlist}.
-
-Pri kontrole dokumentu a overovaní, či si jednotlivé časti navzájom neodporujú, sme čiastočne
-využili aj AI nástroje. Pomohli nám hlavne pri kontrole konzistencie medzi textovou časťou,
-scenármi a databázovým modelom. Výstupy sme si však následne prešli, upravili a prispôsobili
-podľa zadania.
+\textbf{Zhrnutie.}
+Zmysluplný zisk je predovšetkým v \emph{Execution Time}: presnejšie povedané, index umožňuje začať od úzkej množiny lístkov zákazníka namiesto filtrovania po celom objeme tabuľky.
+Pri výrazne väčších tabuľkách \texttt{Listok} by sa rozdiel medzi sekvenčnym čítaním a indexovým vstupom ešte zväčšil; pri súčasnom seede sú obe hodnoty submilisekundové, ale trend je jasný.
+Druhý proces zo zadania po jeho doplnení bude mať vlastné indexové odôvodnenie; ak niektorý dotaz ostane nákladný aj s indexmi (napr.\ kvôli striktnému \texttt{ORDER BY} nad veľkým medzivýsledkom alebo nákladným oknovým funkciám), pôjde typicky o časť plánu, ktorú samotný btree na \texttt{Listok} neodstráni.
 
 % ─── Bibliografia (môže zostať prázdna) ───────────────────────────────────────
 \printbibliography
