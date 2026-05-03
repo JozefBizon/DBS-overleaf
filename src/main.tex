@@ -787,32 +787,32 @@ Dotaz navyše používa oknové funkcie (\texttt{SUM \ldots OVER}, \texttt{COUNT
 \textbf{SQL implementácia} je v súbore \texttt{historia\_premietani.sql}; jej podstata je nasledujúca:
 
 \begin{lstlisting}[language=SQL, caption={História premietaní pre konkrétneho zákazníka (PostgreSQL)}]
-SELECT
-    l.id_listok,
-    f.nazov AS film,
-    k.nazov AS kino,
-    ks.oznacenie AS sala,
-    p.cas_zaciatku,
-    m.rad,
-    m.cislo_miesta,
-    m.typ_miesta,
-    l.cena,
-    l.stav_listka,
-    l.cas_predaja,
-    SUM(l.cena) FILTER (WHERE l.stav_listka = 'platny')
-        OVER (ORDER BY l.cas_predaja) AS kumulativne_utraty,
-    SUM(l.cena) FILTER (WHERE l.stav_listka = 'platny')
-        OVER () AS celkova_utrata,
-    COUNT(*) OVER () AS pocet_listkov_celkom
-FROM Listok l
-JOIN Premietanie p ON p.id_premietanie = l.id_premietanie
-JOIN Film f        ON f.id_film = p.id_film
-JOIN Kinosala ks   ON ks.id_sala = p.id_sala
-JOIN Kino k        ON k.id_kino = ks.id_kino
-JOIN Miesto m      ON m.id_miesto = l.id_miesto
-WHERE l.id_zakaznik = 42
-  AND l.stav_listka = 'platny'
-ORDER BY l.cas_predaja DESC;
+    SELECT
+        l.id_listok,
+        f.nazov AS film,
+        k.nazov AS kino,
+        ks.oznacenie AS sala,
+        p.cas_zaciatku,
+        m.rad,
+        m.cislo_miesta,
+        m.typ_miesta,
+        l.cena,
+        l.stav_listka,
+        l.cas_predaja,
+        SUM(l.cena) FILTER (WHERE l.stav_listka = 'platny')
+            OVER (ORDER BY l.cas_predaja) AS kumulativne_utraty,
+        SUM(l.cena) FILTER (WHERE l.stav_listka = 'platny')
+            OVER () AS celkova_utrata,
+        COUNT(*) OVER () AS pocet_listkov_celkom
+    FROM Listok l
+    JOIN Premietanie p ON p.id_premietanie = l.id_premietanie
+    JOIN Film f ON f.id_film = p.id_film
+    JOIN Kinosala ks ON ks.id_sala = p.id_sala
+    JOIN Kino k ON k.id_kino = ks.id_kino
+    JOIN Miesto m ON m.id_miesto = l.id_miesto
+    WHERE l.id_zakaznik = 42
+      AND l.stav_listka = 'platny'
+    ORDER BY l.cas_predaja DESC;
 \end{lstlisting}
 
 Meranie výkonu (\texttt{EXPLAIN ANALYZE}, \texttt{BUFFERS}) a odôvodnenie indexov je v samostatnej Sekcii~\ref{sec:vykonnost-indexy}.
