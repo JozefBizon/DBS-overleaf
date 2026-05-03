@@ -820,15 +820,41 @@ Dotaz navyše používa oknové funkcie (\texttt{SUM \ldots OVER}, \texttt{COUNT
 \end{lstlisting}
 
 \textbf{Ukážka spustenia nad seed dátami (id\_zakaznik = 42):}
-\begin{lstlisting}
-id_listok | film               | kino             | sala          | cas_zaciatku         | rad | cislo_miesta | typ_miesta | cena  | stav_listka | cas_predaja          | kumulativne_utraty | celkova_utrata | pocet_listkov_celkom
-----------|--------------------|------------------|---------------|----------------------|-----|--------------|------------|-------|-------------|----------------------|--------------------|----------------|----------------------
-6879      | The Godfather      | Kino Europa      | Komorna sala  | 2026-06-12 06:00:00  | A   | 1            | VIP        | 11.90 | platny      | 2026-06-09 07:00:00  | 53.10              | 53.10          | 5
-4305      | Shrek              | Cinemax Central  | Komorna sala  | 2026-05-16 11:00:00  | A   | 2            | VIP        | 9.90  | platny      | 2026-05-13 13:00:00  | 41.20              | 53.10          | 5
-2592      | Top Gun: Maverick  | Kino Hviezda     | Mala sala     | 2026-04-28 14:00:00  | A   | 5            | VIP        | 10.50 | platny      | 2026-04-25 19:00:00  | 31.30              | 53.10          | 5
-1735      | Oppenheimer        | Kino Mier        | VIP sala      | 2026-04-19 16:00:00  | A   | 3            | VIP        | 8.90  | platny      | 2026-04-16 19:00:00  | 20.80              | 53.10          | 5
-879       | The Godfather      | Kino Europa      | Komorna sala  | 2026-04-10 18:00:00  | A   | 1            | VIP        | 11.90 | platny      | 2026-04-07 19:00:00  | 11.90              | 53.10          | 5
-\end{lstlisting}
+
+\vspace{0.5em}
+\begin{table}[H]
+\centering
+\caption*{Výstup procesu 1 – základné údaje lístka}
+\small
+\begin{tabular}{r l l l l r r l}
+\toprule
+\textbf{id} & \textbf{film} & \textbf{kino} & \textbf{sala} & \textbf{cas\_zaciatku} & \textbf{rad} & \textbf{cislo} & \textbf{typ} \\
+\midrule
+6879 & The Godfather     & Kino Europa     & Komorna & 2026-06-12 06:00 & A & 1 & VIP \\
+4305 & Shrek             & Cinemax Central & Komorna & 2026-05-16 11:00 & A & 2 & VIP \\
+2592 & Top Gun: Maverick & Kino Hviezda    & Mala    & 2026-04-28 14:00 & A & 5 & VIP \\
+1735 & Oppenheimer       & Kino Mier       & VIP     & 2026-04-19 16:00 & A & 3 & VIP \\
+879  & The Godfather     & Kino Europa     & Komorna & 2026-04-10 18:00 & A & 1 & VIP \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption*{Výstup procesu 1 – cena, stav a window funkcie}
+\small
+\begin{tabular}{r r l r r r r}
+\toprule
+\textbf{id} & \textbf{cena} & \textbf{stav} & \textbf{cas\_predaja} & \textbf{kum. útraty} & \textbf{celk. útraty} & \textbf{počet} \\
+\midrule
+6879 & 11.90 & platny & 2026-06-09 07:00 & 53.10 & 53.10 & 5 \\
+4305 &  9.90 & platny & 2026-05-13 13:00 & 41.20 & 53.10 & 5 \\
+2592 & 10.50 & platny & 2026-04-25 19:00 & 31.30 & 53.10 & 5 \\
+1735 &  8.90 & platny & 2026-04-16 19:00 & 20.80 & 53.10 & 5 \\
+879  & 11.90 & platny & 2026-04-07 19:00 & 11.90 & 53.10 & 5 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \textbf{Zdôvodnenie korektnosti:}
 \begin{itemize}
